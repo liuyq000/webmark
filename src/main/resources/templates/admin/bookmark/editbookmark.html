@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity6">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${bookmark != null ? '编辑书签 - 本地书签后台' : '新建书签 - 本地书签后台'}">新建书签 - 本地书签后台</title>
+    <link th:href="@{/webjars/bootstrap/css/bootstrap.min.css}" rel="stylesheet">
+    <link th:href="@{/webjars/bootstrap-icons/font/bootstrap-icons.css}" rel="stylesheet">
+    <link th:href="@{/css/admin.css}" rel="stylesheet">
+</head>
+<body>
+    <nav th:replace="~{admin/fragments :: header}"></nav>
+
+    <div class="d-flex" style="margin-top:56px">
+        <nav th:replace="~{admin/fragments :: sidebar('bookmarks')}"></nav>
+
+        <main class="content flex-grow-1 p-4">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a th:href="@{/admin/bookmark/list}">书签管理</a></li>
+                    <li class="breadcrumb-item active" th:text="${bookmark != null ? '编辑书签' : '新建书签'}">新建书签</li>
+                </ol>
+            </nav>
+
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">
+                    <i th:classappend="${bookmark != null ? 'bi bi-pencil-square' : 'bi bi-plus-circle'}"></i>
+                    <span th:text="${bookmark != null ? '编辑书签' : '新建书签'}">新建书签</span>
+                </h5>
+                <a th:href="@{/admin/bookmark/list}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left"></i> 返回列表
+                </a>
+            </div>
+
+            <div class="card shadow-sm mx-auto" style="max-width:680px">
+                <div class="card-body p-4">
+                    <form id="bookmarkForm">
+                        <input type="hidden" id="bookmarkId" th:value="${bookmark != null ? bookmark.id : ''}">
+
+                        <div class="mb-3">
+                            <label for="bookmarkTitle" class="form-label">标题 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="bookmarkTitle" required placeholder="请输入书签标题"
+                                   th:value="${bookmark != null ? bookmark.title : (prefillTitle != null ? prefillTitle : '')}">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="bookmarkUrl" class="form-label">URL <span class="text-danger">*</span></label>
+                            <input type="url" class="form-control" id="bookmarkUrl" required placeholder="https://example.com"
+                                   th:value="${bookmark != null ? bookmark.url : (prefillUrl != null ? prefillUrl : '')}">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">所属文件夹</label>
+                            <div class="tree-select">
+                                <div class="tree-select-input form-control d-flex align-items-center justify-content-between" onclick="toggleEditTreePanel()">
+                                    <span id="editFolderLabel" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">请选择文件夹</span>
+                                    <i class="bi bi-chevron-down" style="font-size:12px;color:#aaa"></i>
+                                </div>
+                                <input type="hidden" id="bookmarkFolderId" value="">
+                                <div class="tree-select-dropdown" id="editTreeSelectDropdown"></div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="bookmarkDescription" class="form-label">描述</label>
+                            <textarea class="form-control" id="bookmarkDescription" rows="3" placeholder="书签描述（可选）"
+                                      th:text="${bookmark != null ? bookmark.description : (prefillDescription != null ? prefillDescription : '')}"></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="bookmarkLogoUrl" class="form-label">Logo URL</label>
+                            <input type="text" class="form-control" id="bookmarkLogoUrl" placeholder="网站图标地址（可选）"
+                                   th:value="${bookmark != null ? bookmark.logoUrl : ''}">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="bookmarkTags" class="form-label">标签</label>
+                            <input type="text" class="form-control" id="bookmarkTags" placeholder="多个标签用逗号分隔"
+                                   th:value="${bookmark != null ? bookmark.tags : ''}">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">类型</label>
+                            <div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="bookmarkPublicType" id="publicType1" value="1"
+                                           th:checked="${bookmark == null or bookmark.publicType == 1}">
+                                    <label class="form-check-label" for="publicType1">公开</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="bookmarkPublicType" id="publicType0" value="0"
+                                           th:checked="${bookmark != null and bookmark.publicType == 0}">
+                                    <label class="form-check-label" for="publicType0">私密</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2 mt-4">
+                            <button type="button" class="btn btn-primary" onclick="submitBookmark()">
+                                <i class="bi bi-check-lg"></i> 保存
+                            </button>
+                            <a th:href="@{/admin/bookmark/list}" class="btn btn-outline-secondary">取消</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
+    <script th:src="@{/js/admin.js}"></script>
+    <script th:inline="javascript">
+    /*<![CDATA[*/
+    var editFolderTreeData = /*[[${folderTree}]]*/ [];
+    var editSelectedFolderId = /*[[${bookmark != null ? bookmark.folderId : (selectedFolderId != null ? selectedFolderId : 40)}]]*/ null; // 默认选中未读列表(id=40)
+    /*]]>*/
+    </script>
+    <script th:inline="none">
+        // ========== 文件夹树形选择器 ==========
+
+        function buildEditTreeSelector(selectedFolderId) {
+            var dropdown = document.getElementById('editTreeSelectDropdown');
+            var hidden = document.getElementById('bookmarkFolderId');
+            var label = document.getElementById('editFolderLabel');
+            if (!dropdown || !hidden) return;
+
+            function setLabel(val, text) {
+                hidden.value = val;
+                label.textContent = text;
+            }
+
+            // 根据 selectedFolderId 初始化 label 显示
+            if (!selectedFolderId) {
+                setLabel('', '请选择文件夹');
+            } else {
+                // 从树数据中查找选中文件夹的名称
+                (function findName(folders) {
+                    for (var i = 0; i < folders.length; i++) {
+                        var f = folders[i];
+                        if (f.id == selectedFolderId) { setLabel(f.id, f.name); return; }
+                        if (f.children) findName(f.children);
+                    }
+                })(editFolderTreeData || []);
+            }
+
+            dropdown.innerHTML = '';
+            if (typeof editFolderTreeData === 'undefined') return;
+
+            function renderTree(folders, level, parentEl) {
+                var container = parentEl || dropdown;
+                folders.forEach(function (f) {
+                    var hasChildren = f.children && f.children.length > 0;
+                    var div = document.createElement('div');
+                    div.className = 'tree-select-item' + (f.id == selectedFolderId ? ' select-selected' : '');
+                    div.style.paddingLeft = (12 + level * 20) + 'px';
+
+                    var toggleSpan = document.createElement('span');
+                    if (hasChildren) {
+                        toggleSpan.className = 'ts-toggle';
+                        toggleSpan.innerHTML = '<i class="bi bi-chevron-down"></i>';
+                        toggleSpan.onclick = function (e) {
+                            e.stopPropagation();
+                            var cd = div.nextElementSibling;
+                            if (cd && cd.classList.contains('tree-select-children')) {
+                                var h = cd.style.display === 'none';
+                                cd.style.display = h ? '' : 'none';
+                                toggleSpan.querySelector('i').className = h ? 'bi bi-chevron-down' : 'bi bi-chevron-right';
+                            }
+                        };
+                    } else {
+                        toggleSpan.className = 'ts-empty';
+                    }
+                    div.appendChild(toggleSpan);
+
+                    var nameSpan = document.createElement('span');
+                    nameSpan.className = 'ts-name';
+                    nameSpan.textContent = f.name;
+                    div.appendChild(nameSpan);
+
+                    div.onclick = function () {
+                        setLabel(f.id, f.name);
+                        dropdown.querySelectorAll('.select-selected').forEach(function (el) { el.classList.remove('select-selected'); });
+                        div.classList.add('select-selected');
+                        closeEditTreePanel();
+                    };
+                    container.appendChild(div);
+
+                    if (hasChildren) {
+                        var cd = document.createElement('div');
+                        cd.className = 'tree-select-children';
+                        cd.style.display = 'none';
+                        container.appendChild(cd);
+                        renderTree(f.children, level + 1, cd);
+                    }
+                });
+            }
+            renderTree(editFolderTreeData, 0);
+        }
+
+        function toggleEditTreePanel() {
+            document.getElementById('editTreeSelectDropdown').classList.toggle('open');
+        }
+
+        function closeEditTreePanel() {
+            document.getElementById('editTreeSelectDropdown').classList.remove('open');
+        }
+
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest('#editTreeSelectDropdown, .tree-select-input')) {
+                var dd = document.getElementById('editTreeSelectDropdown');
+                if (dd) dd.classList.remove('open');
+            }
+        });
+
+        // 页面加载时初始化树形选择器
+        buildEditTreeSelector(editSelectedFolderId);
+
+        // 提交书签（新建或编辑）
+        async function submitBookmark() {
+            const title = document.getElementById('bookmarkTitle').value.trim();
+            const url = document.getElementById('bookmarkUrl').value.trim();
+            if (!title) { alert('请输入标题'); return; }
+            if (!url) { alert('请输入URL'); return; }
+
+            // 简单URL验证
+            if (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('/')) {
+                alert('请输入有效的URL（以 http:// 或 https:// 开头）');
+                return;
+            }
+
+            const id = document.getElementById('bookmarkId').value;
+            const folderId = document.getElementById('bookmarkFolderId').value;
+            const description = document.getElementById('bookmarkDescription').value.trim();
+            const logoUrl = document.getElementById('bookmarkLogoUrl').value.trim();
+            const tags = document.getElementById('bookmarkTags').value.trim();
+            const publicTypeRadio = document.querySelector('input[name="bookmarkPublicType"]:checked');
+            if (!publicTypeRadio) {
+                alert('请选择类型（公开/私密）');
+                return;
+            }
+            const publicType = parseInt(publicTypeRadio.value);
+
+            const body = {
+                title: title,
+                url: url,
+                folderId: folderId ? Number(folderId) : null,
+                description: description,
+                logoUrl: logoUrl,
+                tags: tags,
+                publicType: publicType
+            };
+
+            try {
+                let resp;
+                if (id) {
+                    resp = await fetch('/api/admin/bookmarks/' + id, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body)
+                    });
+                } else {
+                    resp = await fetch('/api/admin/bookmarks', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body)
+                    });
+                }
+                if (resp.ok) {
+                    window.location.href = '/admin/bookmark/list';
+                } else {
+                    const err = await resp.json().catch(() => ({}));
+                    alert('保存失败：' + (err.message || '服务器错误，请稍后重试'));
+                }
+            } catch (e) {
+                console.error('提交书签失败:', e);
+                alert('保存失败：网络错误，请检查连接后重试');
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+[
+  {"id": 1, "parentId": null, "name": "设计", "nameEn": "Design", "icon": "bi-palette",    "sortOrder": 1, "deleted": 0},
+  {"id": 2, "parentId": null, "name": "前端", "nameEn": "Develop", "icon": "bi-code-slash", "sortOrder": 2, "deleted": 0},
+  {"id": 3, "parentId": null, "name": "产品", "nameEn": "Product", "icon": "bi-box",         "sortOrder": 3, "deleted": 0},
+  {"id": 4, "parentId": null, "name": "运营", "nameEn": "Operate", "icon": "bi-bar-chart",   "sortOrder": 4, "deleted": 0},
+
+  {"id": 5,  "parentId": 1, "name": "灵感采集", "nameEn": "Inspiration",    "sortOrder": 1,  "deleted": 0},
+  {"id": 6,  "parentId": 1, "name": "界面交互", "nameEn": "Interaction",    "sortOrder": 2,  "deleted": 0},
+  {"id": 7,  "parentId": 1, "name": "设计规范", "nameEn": "Guideline",      "sortOrder": 3,  "deleted": 0},
+  {"id": 8,  "parentId": 1, "name": "在线工具", "nameEn": "Tools",          "sortOrder": 4,  "deleted": 0},
+  {"id": 9,  "parentId": 1, "name": "icon图标", "nameEn": "Icons",          "sortOrder": 5,  "deleted": 0},
+  {"id": 10, "parentId": 1, "name": "设计素材", "nameEn": "Assets",         "sortOrder": 6,  "deleted": 0},
+  {"id": 11, "parentId": 1, "name": "图库素材", "nameEn": "Photos",         "sortOrder": 7,  "deleted": 0},
+  {"id": 12, "parentId": 1, "name": "颜色搭配", "nameEn": "Colors",         "sortOrder": 8,  "deleted": 0},
+  {"id": 13, "parentId": 1, "name": "字体字形", "nameEn": "Fonts",          "sortOrder": 9,  "deleted": 0},
+  {"id": 14, "parentId": 1, "name": "学习教程", "nameEn": "Tutorials",      "sortOrder": 10, "deleted": 0},
+  {"id": 15, "parentId": 1, "name": "设计团队", "nameEn": "Teams",          "sortOrder": 11, "deleted": 0},
+  {"id": 16, "parentId": 1, "name": "插画绘画", "nameEn": "Illustration",   "sortOrder": 12, "deleted": 0},
+
+  {"id": 17, "parentId": 2, "name": "前端框架", "nameEn": "Frameworks",     "sortOrder": 1, "deleted": 0},
+  {"id": 18, "parentId": 2, "name": "论坛社区", "nameEn": "Community",      "sortOrder": 2, "deleted": 0},
+  {"id": 19, "parentId": 2, "name": "学习平台", "nameEn": "Learning",       "sortOrder": 3, "deleted": 0},
+  {"id": 20, "parentId": 2, "name": "在线编程", "nameEn": "Playground",     "sortOrder": 4, "deleted": 0},
+  {"id": 21, "parentId": 2, "name": "代码托管", "nameEn": "Repository",     "sortOrder": 5, "deleted": 0},
+  {"id": 22, "parentId": 2, "name": "构建工具", "nameEn": "Build Tools",    "sortOrder": 6, "deleted": 0},
+  {"id": 23, "parentId": 2, "name": "检查测试", "nameEn": "Testing",        "sortOrder": 7, "deleted": 0},
+  {"id": 24, "parentId": 2, "name": "内容管理", "nameEn": "CMS",            "sortOrder": 8, "deleted": 0},
+  {"id": 25, "parentId": 2, "name": "后端系统", "nameEn": "Backend",        "sortOrder": 9, "deleted": 0},
+
+  {"id": 26, "parentId": 3, "name": "产品资讯", "nameEn": "News",           "sortOrder": 1, "deleted": 0},
+  {"id": 27, "parentId": 3, "name": "原型工具", "nameEn": "Prototyping",    "sortOrder": 2, "deleted": 0},
+  {"id": 28, "parentId": 3, "name": "思维导图", "nameEn": "Mind Map",       "sortOrder": 3, "deleted": 0},
+  {"id": 29, "parentId": 3, "name": "协同工作", "nameEn": "Collaboration",  "sortOrder": 4, "deleted": 0},
+  {"id": 30, "parentId": 3, "name": "文档编辑", "nameEn": "Documents",      "sortOrder": 5, "deleted": 0},
+  {"id": 31, "parentId": 3, "name": "云盘储存", "nameEn": "Cloud Storage",  "sortOrder": 6, "deleted": 0},
+  {"id": 32, "parentId": 3, "name": "趣味产品", "nameEn": "Fun",            "sortOrder": 7, "deleted": 0},
+
+  {"id": 33, "parentId": 4, "name": "域名注册", "nameEn": "Domain",         "sortOrder": 1, "deleted": 0},
+  {"id": 34, "parentId": 4, "name": "数据分析", "nameEn": "Analytics",      "sortOrder": 2, "deleted": 0},
+  {"id": 35, "parentId": 4, "name": "数据工具", "nameEn": "Data Tools",     "sortOrder": 3, "deleted": 0},
+  {"id": 36, "parentId": 4, "name": "数据收集", "nameEn": "Data Collection","sortOrder": 4, "deleted": 0},
+  {"id": 37, "parentId": 4, "name": "新媒平台", "nameEn": "Media Platform", "sortOrder": 5, "deleted": 0},
+  {"id": 38, "parentId": 4, "name": "新媒工具", "nameEn": "Media Tools",    "sortOrder": 6, "deleted": 0},
+  {"id": 39, "parentId": 4, "name": "网站收录", "nameEn": "Submission",     "sortOrder": 7, "deleted": 0},
+
+  {"id": 40, "parentId": null, "name": "首页",   "nameEn": "Home",        "icon": "bi-house",    "sortOrder": 0, "deleted": 0},
+
+  {"id": 41, "parentId": null, "name": "未读列表", "nameEn": "Unread",      "icon": "bi-bookmark", "sortOrder": 6, "userId": 1, "deleted": 0}
+]

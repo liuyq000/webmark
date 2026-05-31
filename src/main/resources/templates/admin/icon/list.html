@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity6">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图标管理 - 本地书签</title>
+    <link th:href="@{/webjars/bootstrap/css/bootstrap.min.css}" rel="stylesheet">
+    <link th:href="@{/webjars/bootstrap-icons/font/bootstrap-icons.css}" rel="stylesheet">
+    <link th:href="@{/css/admin.css}" rel="stylesheet">
+    <style>
+        .icon-grid { display: grid; grid-template-columns: repeat(16, 1fr); gap: 4px; }
+        .icon-item { display: flex; flex-direction: column; align-items: center; padding: 10px 4px; border-radius: 8px; cursor: pointer; transition: all 0.15s; border: 1px solid transparent; background: #f8f9fa; }
+        .icon-item:hover { background: #e7f1ff; border-color: #0d6efd; transform: scale(1.05); }
+        .icon-item i { font-size: 22px; color: #495057; }
+        .icon-item .icon-name { font-size: 10px; color: #6c757d; margin-top: 4px; text-align: center; word-break: break-all; }
+        .icon-item.copied { background: #d1e7dd; border-color: #198754; }
+        .search-box { max-width: 400px; }
+        #toast { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: none; }
+    </style>
+</head>
+<body>
+    <nav th:replace="~{admin/fragments :: header}"></nav>
+    <div class="d-flex">
+        <nav th:replace="~{admin/fragments :: sidebar('icons')}"></nav>
+        <main class="content" style="padding:80px 48px 24px;">
+            <div class="d-flex justify-content-between align-items-center mb-3 gap-2 flex-wrap">
+                <h4 class="mb-0"><i class="bi bi-emoji-smile"></i> 图标管理</h4>
+                <div class="d-flex gap-2">
+                    <select class="form-select form-select-sm" id="categorySelect" onchange="changeCategory(this.value)" style="width:auto;min-width:120px">
+                        <option value="all">加载中...</option>
+                    </select>
+                    <div class="input-group input-group-sm search-box" style="max-width:220px">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" id="iconSearch" class="form-control" placeholder="搜索..." oninput="filterIcons()">
+                    </div>
+                </div>
+            </div>
+            <p class="text-muted small mb-3">共 <span id="iconCount">0</span> 个图标，点击即可复制 <code>bi bi-xxx</code> 类名</p>
+            <div class="icon-grid" id="iconGrid"></div>
+            <div id="noResult" class="text-center py-5 d-none">
+                <i class="bi bi-emoji-frown fs-1 text-muted"></i>
+                <p class="text-muted mt-2">未找到匹配的图标</p>
+            </div>
+        </main>
+    </div>
+
+    <div id="toast" class="toast align-items-center text-bg-success border-0">
+        <div class="d-flex"><div class="toast-body" id="toastMsg">已复制</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div>
+    </div>
+
+    <script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
+    <script>
+    let allIcons = [];
+    let currentCategory = 'all';
+
+    // 提取分类名（取 bi-xxx-yyy 中的 xxx 部分）
+    function getCategory(iconName) {
+        const parts = iconName.replace('bi-', '').split('-');
+        return parts[0] || 'other';
+    }
+
+    // 从 CSS 加载图标
+    fetch('/webjars/bootstrap-icons/font/bootstrap-icons.css')
+        .then(r => r.text())
+        .then(css => {
+            const matches = css.matchAll(/\.(bi-[\w-]+)::before/g);
+            allIcons = [...new Set([...matches].map(m => m[1]))].sort();
+            buildCategorySelect();
+            document.getElementById('iconCount').textContent = allIcons.length;
+            renderIcons(allIcons);
+        });
+
+    // 构建分类下拉
+    function buildCategorySelect() {
+        const cats = {};
+        allIcons.forEach(name => {
+            const c = getCategory(name);
+            cats[c] = (cats[c] || 0) + 1;
+        });
+        const sorted = Object.entries(cats).sort((a, b) => b[1] - a[1]);
+        const select = document.getElementById('categorySelect');
+        select.innerHTML = '<option value="all">全部 (' + allIcons.length + ')</option>'
+            + sorted.map(([k, v]) => '<option value="' + k + '">' + k + ' (' + v + ')</option>').join('');
+    }
+
+    function renderIcons(icons) {
+        const grid = document.getElementById('iconGrid');
+        grid.innerHTML = icons.map(name => `
+            <div class="icon-item" onclick="copyIcon('${name}')" title="bi ${name}">
+                <i class="bi ${name}"></i>
+                <span class="icon-name">${name.replace('bi-','')}</span>
+            </div>
+        `).join('');
+    }
+
+    function filterIcons() {
+        const q = document.getElementById('iconSearch').value.toLowerCase();
+        const filtered = allIcons.filter(i => i.toLowerCase().includes(q));
+        renderIcons(filtered);
+        document.getElementById('noResult').classList.toggle('d-none', filtered.length > 0);
+    }
+
+    function changeCategory(val) {
+        currentCategory = val;
+        document.getElementById('iconSearch').value = '';
+        const filtered = val === 'all' ? allIcons : allIcons.filter(i => getCategory(i) === val);
+        renderIcons(filtered);
+        document.getElementById('noResult').classList.toggle('d-none', filtered.length > 0);
+    }
+
+    function copyIcon(name) {
+        navigator.clipboard.writeText('bi ' + name);
+        const toast = new bootstrap.Toast(document.getElementById('toast'));
+        document.getElementById('toastMsg').textContent = '已复制: bi ' + name;
+        toast.show();
+    }
+    </script>
+</body>
+</html>

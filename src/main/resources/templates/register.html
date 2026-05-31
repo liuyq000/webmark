@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注册 - 本地书签</title>
+    <link th:href="@{/webjars/bootstrap/css/bootstrap.min.css}" rel="stylesheet">
+    <link th:href="@{/webjars/bootstrap-icons/font/bootstrap-icons.css}" rel="stylesheet">
+    <link th:href="@{/css/style.css}" rel="stylesheet">
+    <style>
+        body { background: var(--sidebar-bg); }
+        .auth-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .auth-card { background: #fff; border-radius: 16px; padding: 40px; width: 100%; max-width: 400px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+        .auth-card h3 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+        .auth-card .subtitle { color: var(--text-secondary); font-size: 14px; margin-bottom: 28px; }
+        .form-group { margin-bottom: 18px; }
+        .form-group label { font-size: 13px; font-weight: 500; color: #555; margin-bottom: 6px; display: block; }
+        .form-input { width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; transition: border-color 0.2s; outline: none; }
+        .form-input:focus { border-color: var(--primary); }
+        .auth-btn { width: 100%; padding: 12px; background: var(--primary); color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 500; cursor: pointer; transition: background 0.2s; }
+        .auth-btn:hover { background: #3a7bd5; }
+        .auth-footer { text-align: center; margin-top: 20px; font-size: 13px; color: var(--text-secondary); }
+        .auth-footer a { color: var(--primary); }
+        .auth-back { text-align: center; margin-top: 24px; }
+        .auth-back a { color: rgba(255,255,255,0.5); font-size: 13px; }
+        .auth-back a:hover { color: #fff; }
+        .alert-sm { padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 18px; }
+    </style>
+</head>
+<body>
+    <div class="auth-page">
+        <div class="auth-card">
+            <div class="text-center mb-1">
+                <i class="bi bi-bookmark-star-fill" style="font-size:32px;color:var(--primary)"></i>
+            </div>
+            <h3 class="text-center">创建账号</h3>
+            <p class="subtitle text-center">注册本地书签账号</p>
+
+            <div th:if="${param.error == 'exists'}" class="alert alert-danger alert-sm">用户名已存在</div>
+            <div th:if="${param.error == 'email_exists'}" class="alert alert-danger alert-sm">邮箱已被注册</div>
+
+            <form th:action="@{/register}" method="post">
+                <div class="form-group">
+                    <label>用户名</label>
+                    <input type="text" name="userName" class="form-input" placeholder="请输入用户名" required>
+                </div>
+                <div class="form-group">
+                    <label>邮箱</label>
+                    <input type="email" name="email" class="form-input" placeholder="请输入邮箱" required>
+                </div>
+                <div class="form-group">
+                    <label>密码</label>
+                    <input type="password" name="password" class="form-input" placeholder="请输入密码" required>
+                </div>
+                <button type="submit" class="auth-btn">注 册</button>
+            </form>
+            <div class="auth-footer">
+                已有账号？<a th:href="@{/login}">立即登录</a>
+            </div>
+        </div>
+        <div class="auth-back">
+            <a th:href="@{/index}"><i class="bi bi-arrow-left"></i> 返回首页</a>
+        </div>
+    </div>
+</body>
+</html>

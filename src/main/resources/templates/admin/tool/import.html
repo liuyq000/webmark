@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity6">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>导入收藏夹 - 本地书签后台</title>
+    <link th:href="@{/webjars/bootstrap/css/bootstrap.min.css}" rel="stylesheet">
+    <link th:href="@{/webjars/bootstrap-icons/font/bootstrap-icons.css}" rel="stylesheet">
+    <link th:href="@{/css/admin.css}" rel="stylesheet">
+</head>
+<body>
+    <nav th:replace="~{admin/fragments :: header}"></nav>
+    <div class="d-flex" style="margin-top:56px">
+        <nav th:replace="~{admin/fragments :: sidebar('import')}"></nav>
+        <main class="content flex-grow-1 p-4">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a th:href="@{/admin/index}">首页</a></li>
+                    <li class="breadcrumb-item active">导入收藏夹</li>
+                </ol>
+            </nav>
+
+            <h5 class="mb-3"><i class="bi bi-upload"></i> 导入浏览器收藏夹</h5>
+
+            <div class="card border-0 shadow-sm" style="max-width:650px">
+                <div class="card-body">
+                    <p class="text-muted">支持从 Chrome、Edge、Firefox 等浏览器导出的 HTML 书签文件导入。</p>
+                    <form id="importForm" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="htmlFile" class="form-label">选择书签文件</label>
+                            <input type="file" class="form-control" id="htmlFile" name="htmlFile" accept=".html,.htm" required>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="structure" name="structure" value="YES" checked>
+                            <label class="form-check-label" for="structure">按照目录结构导入收藏夹</label>
+                            <div class="form-text">浏览器书签的第一层目录将作为文件夹名</div>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="privateType" name="type" value="PRIVATE">
+                            <label class="form-check-label" for="privateType">私密导入收藏</label>
+                            <div class="form-text">勾选后导入的书签仅自己可见</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary" id="submitBtn">
+                            <i class="bi bi-upload"></i> 开始导入
+                        </button>
+                        <span id="importStatus" class="ms-3 small"></span>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
+    <script th:src="@{/js/admin.js}"></script>
+    <script>
+        document.getElementById('importForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            var fileInput = document.getElementById('htmlFile');
+            if (!fileInput.files.length) {
+                alert('请选择书签文件');
+                return;
+            }
+            var btn = document.getElementById('submitBtn');
+            var status = document.getElementById('importStatus');
+            btn.disabled = true;
+            status.textContent = '导入中...';
+            status.className = 'ms-3 small text-muted';
+
+            var formData = new FormData(this);
+            fetch('/admin/tool/import', {
+                method: 'POST',
+                body: formData
+            }).then(r => r.json()).then(data => {
+                if (data.success) {
+                    status.textContent = data.message;
+                    status.className = 'ms-3 small text-success';
+                } else {
+                    status.textContent = data.message;
+                    status.className = 'ms-3 small text-danger';
+                }
+                btn.disabled = false;
+            }).catch(err => {
+                status.textContent = '导入失败：网络错误';
+                status.className = 'ms-3 small text-danger';
+                btn.disabled = false;
+            });
+        });
+    </script>
+</body>
+</html>
