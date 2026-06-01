@@ -324,81 +324,78 @@
 
             <!-- 用户管理面板 -->
             <div id="userMgmtPanel" style="display:none; position:fixed; top:56px; left:220px; right:0; bottom:0; background:#f5f6fa; z-index:900; padding:20px; overflow:auto;">
-                <h5 class="mb-3"><i class="bi bi-person-gear"></i> 用户管理</h5>
-                <div class="row g-3">
-                    <div class="col-md-4">
-                        <div class="card shadow-sm border-0">
-                            <div class="card-body text-center p-4">
-                                <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width:80px;height:80px;">
-                                    <i class="bi bi-person-fill fs-1 text-primary"></i>
-                                </div>
-                                <h5 class="mb-1" th:text="${currentUser != null ? currentUser.userName : '未登录'}">用户名</h5>
-                                <p class="text-muted small mb-2" th:text="${currentUser != null ? currentUser.email : ''}">邮箱</p>
-                                <span class="badge bg-secondary" th:text="${currentUser != null ? currentUser.role : 'USER'}">USER</span>
-                            </div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0"><i class="bi bi-people-fill me-2"></i>用户管理</h5>
+                    <button class="btn btn-primary btn-sm" onclick="openUserModal()"><i class="bi bi-person-plus me-1"></i>新建用户</button>
+                </div>
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center py-2 px-3">
+                        <span class="small text-muted" id="userTotalText">共 0 个用户</span>
+                        <div class="input-group input-group-sm" style="max-width:220px">
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                            <input type="text" class="form-control" id="userSearchInput" placeholder="搜索用户名/邮箱..." oninput="searchUsers()">
                         </div>
                     </div>
-                    <div class="col-md-8">
-                        <div class="card shadow-sm border-0">
-                            <div class="card-header bg-white border-bottom-0 pt-3 pb-0">
-                                <ul class="nav nav-tabs card-header-tabs" id="userMgmtTabs">
-                                    <li class="nav-item"><a class="nav-link active" href="#" onclick="switchUserTab('profile',this)">基本信息</a></li>
-                                    <li class="nav-item"><a class="nav-link" href="#" onclick="switchUserTab('password',this)">修改密码</a></li>
-                                </ul>
-                            </div>
-                            <div class="card-body">
-                                <!-- 基本信息 -->
-                                <div id="userTabProfile">
-                                    <form id="userProfileForm" onsubmit="saveUserProfile(event)">
-                                        <div class="row g-3">
-                                            <div class="col-md-6">
-                                                <label class="form-label small">用户名</label>
-                                                <input type="text" class="form-control form-control-sm" id="profileUserName" th:value="${currentUser != null ? currentUser.userName : ''}" required>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label class="form-label small">邮箱</label>
-                                                <input type="email" class="form-control form-control-sm" id="profileEmail" th:value="${currentUser != null ? currentUser.email : ''}">
-                                            </div>
-                                            <div class="col-12">
-                                                <label class="form-label small">个人简介</label>
-                                                <textarea class="form-control form-control-sm" id="profileIntro" rows="3" th:text="${currentUser != null ? currentUser.introduction : ''}" placeholder="写点什么..."></textarea>
-                                            </div>
-                                            <div class="col-12">
-                                                <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-check-lg me-1"></i>保存修改</button>
-                                                <span id="profileSaveStatus" class="small ms-2"></span>
-                                            </div>
-                                        </div>
-                                    </form>
-                                </div>
-                                <!-- 修改密码 -->
-                                <div id="userTabPassword" style="display:none">
-                                    <form id="userPasswordForm" onsubmit="changeUserPassword(event)">
-                                        <div class="row g-3">
-                                            <div class="col-md-6">
-                                                <label class="form-label small">当前密码</label>
-                                                <input type="password" class="form-control form-control-sm" id="pwdCurrent" required>
-                                            </div>
-                                            <div class="col-md-6"></div>
-                                            <div class="col-md-6">
-                                                <label class="form-label small">新密码</label>
-                                                <input type="password" class="form-control form-control-sm" id="pwdNew" required minlength="6">
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label class="form-label small">确认新密码</label>
-                                                <input type="password" class="form-control form-control-sm" id="pwdConfirm" required>
-                                            </div>
-                                            <div class="col-12">
-                                                <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-key me-1"></i>修改密码</button>
-                                                <span id="pwdSaveStatus" class="small ms-2"></span>
-                                            </div>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width:50px">ID</th>
+                                        <th>用户名</th>
+                                        <th>邮箱</th>
+                                        <th style="width:80px">角色</th>
+                                        <th style="width:160px">创建时间</th>
+                                        <th style="width:130px">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="userTableBody">
+                                    <tr><td colspan="6" class="text-center text-muted py-4">加载中...</td></tr>
+                                </tbody>
+                            </table>
                         </div>
+                    </div>
+                    <div class="card-footer bg-white d-flex justify-content-between align-items-center py-2">
+                        <span class="small text-muted" id="userPageInfo">第 0-0 条，共 0 条</span>
+                        <nav><ul class="pagination pagination-sm mb-0" id="userPagination"></ul></nav>
                     </div>
                 </div>
             </div>
+
+            <!-- 用户新建/编辑弹窗 -->
+            <div class="modal fade" id="userModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+                <div class="modal-header"><h5 class="modal-title" id="userModalTitle"><i class="bi bi-person-plus me-2"></i>新建用户</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <input type="hidden" id="userModalId">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small">用户名 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control form-control-sm" id="userModalUserName" required minlength="3" maxlength="50">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">邮箱</label>
+                            <input type="email" class="form-control form-control-sm" id="userModalEmail">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">密码 <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control form-control-sm" id="userModalPassword" minlength="6" placeholder="新建时必填">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">角色</label>
+                            <select class="form-select form-select-sm" id="userModalRole">
+                                <option value="ROLE_USER">普通用户</option>
+                                <option value="ROLE_ADMIN">管理员</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small">个人简介</label>
+                            <textarea class="form-control form-control-sm" id="userModalIntro" rows="2" placeholder="可选"></textarea>
+                        </div>
+                        <div class="col-12"><span id="userModalError" class="small text-danger"></span></div>
+                    </div>
+                </div>
+                <div class="modal-footer"><button class="btn btn-sm btn-light" data-bs-dismiss="modal">取消</button><button class="btn btn-sm btn-primary" onclick="saveUser()"><i class="bi bi-check-lg me-1"></i>保存</button></div>
+            </div></div></div>
 
             </div>
         </main>
@@ -766,11 +763,163 @@
     function hideBmMgmt() {
         document.getElementById('bmBrowsePanel').style.display = '';
         document.getElementById('bmMgmtPanel').style.display = 'none';
+        document.getElementById('userMgmtPanel').style.display = 'none';
+    }
+
+    function showUserMgmt() {
+        var sidebar = document.getElementById('sidebar');
+        var sidebarW = sidebar && sidebar.classList.contains('mini') ? 60 : 220;
+        var panel = document.getElementById('userMgmtPanel');
+        if (panel) {
+            panel.style.left = sidebarW + 'px';
+            panel.style.display = 'block';
+        }
+        document.getElementById('bmBrowsePanel').style.display = 'none';
+        document.getElementById('bmMgmtPanel').style.display = 'none';
+        loadUserList(1);
+    }
+
+    // ========== 用户列表管理 ==========
+    var userPageNum = 1, userPageSize = 10, userKeyword = '';
+
+    function loadUserList(pageNum) {
+        userPageNum = pageNum || 1;
+        var url = '/admin/api/user/list?pageNum=' + userPageNum + '&pageSize=' + userPageSize;
+        if (userKeyword) url += '&keyword=' + encodeURIComponent(userKeyword);
+        fetch(url).then(function(r) { return r.json(); }).then(function(d) {
+            renderUserTable(d.data && d.data.list ? d.data.list : (d.list || []));
+            renderUserPagination(d.data || d);
+            var total = (d.data && d.data.total) || d.total || 0;
+            document.getElementById('userTotalText').textContent = '共 ' + total + ' 个用户';
+            var start = (userPageNum - 1) * userPageSize + 1;
+            var end = Math.min(userPageNum * userPageSize, total);
+            document.getElementById('userPageInfo').textContent = '第 ' + start + '-' + end + ' 条，共 ' + total + ' 条';
+        }).catch(function() {
+            document.getElementById('userTableBody').innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4">加载失败</td></tr>';
+        });
+    }
+
+    function renderUserTable(users) {
+        var tbody = document.getElementById('userTableBody');
+        if (!users || !users.length) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">暂无用户</td></tr>';
+            return;
+        }
+        tbody.innerHTML = users.map(function(u) {
+            var roleBadge = (u.role === 'ROLE_ADMIN')
+                ? '<span class="badge bg-danger">管理员</span>'
+                : '<span class="badge bg-secondary">普通用户</span>';
+            var createTime = u.createTime ? (typeof u.createTime === 'string' ? u.createTime.substring(0, 19) : '') : '';
+            return '<tr>' +
+                '<td class="small text-muted">' + u.id + '</td>' +
+                '<td><strong>' + esc(u.userName || '') + '</strong></td>' +
+                '<td class="small">' + esc(u.email || '-') + '</td>' +
+                '<td>' + roleBadge + '</td>' +
+                '<td class="small text-muted">' + createTime + '</td>' +
+                '<td>' +
+                    '<button class="btn btn-xs btn-outline-primary me-1" onclick="editUser(' + u.id + ')" title="编辑"><i class="bi bi-pencil"></i></button>' +
+                    '<button class="btn btn-xs btn-outline-danger" onclick="deleteUser(' + u.id + ', \'' + esc(u.userName || '') + '\')" title="删除"><i class="bi bi-trash"></i></button>' +
+                '</td>' +
+                '</tr>';
+        }).join('');
+    }
+
+    function renderUserPagination(data) {
+        var total = data.total || 0, pages = Math.ceil(total / userPageSize) || 1;
+        var ul = document.getElementById('userPagination');
+        var html = '';
+        html += '<li class="page-item ' + (userPageNum <= 1 ? 'disabled' : '') + '"><a class="page-link" href="javascript:;" onclick="if(' + (userPageNum-1) + '>=1)loadUserList(' + (userPageNum-1) + ')">上一页</a></li>';
+        var start = Math.max(1, userPageNum - 2), end = Math.min(pages, userPageNum + 2);
+        for (var i = start; i <= end; i++) {
+            html += '<li class="page-item ' + (i === userPageNum ? 'active' : '') + '"><a class="page-link" href="javascript:;" onclick="loadUserList(' + i + ')">' + i + '</a></li>';
+        }
+        html += '<li class="page-item ' + (userPageNum >= pages ? 'disabled' : '') + '"><a class="page-link" href="javascript:;" onclick="loadUserList(' + (userPageNum+1) + ')">下一页</a></li>';
+        ul.innerHTML = html;
+    }
+
+    function searchUsers() {
+        userKeyword = document.getElementById('userSearchInput').value.trim();
+        loadUserList(1);
+    }
+
+    function openUserModal(id) {
+        document.getElementById('userModalError').textContent = '';
+        document.getElementById('userModalId').value = '';
+        document.getElementById('userModalUserName').value = '';
+        document.getElementById('userModalEmail').value = '';
+        document.getElementById('userModalPassword').value = '';
+        document.getElementById('userModalPassword').placeholder = '新建时必填';
+        document.getElementById('userModalRole').value = 'ROLE_USER';
+        document.getElementById('userModalIntro').value = '';
+        document.getElementById('userModalTitle').innerHTML = '<i class="bi bi-person-plus me-2"></i>新建用户';
+        if (id) {
+            document.getElementById('userModalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>编辑用户';
+            document.getElementById('userModalId').value = id;
+            document.getElementById('userModalPassword').placeholder = '留空表示不修改密码';
+            fetch('/admin/api/user/detail?id=' + id).then(function(r) { return r.json(); }).then(function(d) {
+                if (d.success && d.data) {
+                    document.getElementById('userModalUserName').value = d.data.userName || '';
+                    document.getElementById('userModalEmail').value = d.data.email || '';
+                    document.getElementById('userModalRole').value = d.data.role || 'ROLE_USER';
+                    document.getElementById('userModalIntro').value = d.data.introduction || '';
+                }
+            });
+        }
+        new bootstrap.Modal(document.getElementById('userModal')).show();
+    }
+
+    function editUser(id) { openUserModal(id); }
+
+    async function saveUser() {
+        var id = document.getElementById('userModalId').value;
+        var userName = document.getElementById('userModalUserName').value.trim();
+        var password = document.getElementById('userModalPassword').value;
+        var email = document.getElementById('userModalEmail').value.trim();
+        var role = document.getElementById('userModalRole').value;
+        var intro = document.getElementById('userModalIntro').value.trim();
+        var err = document.getElementById('userModalError');
+
+        if (!userName) { err.textContent = '用户名不能为空'; return; }
+        if (!id && !password) { err.textContent = '新建用户时密码不能为空'; return; }
+
+        var body = { userName: userName, email: email, role: role, introduction: intro };
+        if (password) body.password = password;
+        if (id) body.id = id;
+
+        try {
+            var resp = await fetch('/admin/api/user/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            var d = await resp.json();
+            if (d.success) {
+                bootstrap.Modal.getInstance(document.getElementById('userModal')).hide();
+                loadUserList(userPageNum);
+            } else {
+                err.textContent = d.message || '保存失败';
+            }
+        } catch(e) {
+            err.textContent = '保存失败，请重试';
+        }
+    }
+
+    function deleteUser(id, name) {
+        if (!confirm('确定要删除用户「' + name + '」吗？此操作不可恢复。')) return;
+        fetch('/admin/api/user/delete?id=' + id, { method: 'POST' }).then(function(r) {
+            return r.json();
+        }).then(function(d) {
+            if (d.success) loadUserList(userPageNum);
+            else alert(d.message || '删除失败');
+        }).catch(function() {
+            alert('删除失败');
+        });
     }
 
     // ========== 侧边栏管理工具快捷操作 ==========
     function switchToManage(feature) {
         if (feature === 'bookmark') showBmMgmt();
+        if (feature === 'user') showUserMgmt();
     }
 
     // ========== 导入导出 ==========

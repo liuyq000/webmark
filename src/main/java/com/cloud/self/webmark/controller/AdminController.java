@@ -1,12 +1,15 @@
 package com.cloud.self.webmark.controller;
 
+import com.cloud.self.webmark.entity.Bookmark;
+import com.cloud.self.webmark.entity.Folder;
+import com.cloud.self.webmark.entity.User;
+import com.cloud.self.webmark.service.BookmarkService;
+import com.cloud.self.webmark.service.FolderService;
+import com.cloud.self.webmark.service.UserService;
 import com.cloud.self.webmark.store.PageResult;
-import com.cloud.self.webmark.entity.*;
-import com.cloud.self.webmark.service.*;
 import com.cloud.self.webmark.utils.HtmlUtil;
 import com.cloud.self.webmark.utils.HtmlUtil.BookmarkNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +18,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -40,6 +44,7 @@ public class AdminController {
     private final BookmarkService bookmarkService;
     private final FolderService folderService;
     private final UserService userService;
+    private final PasswordEncoder passwordEncoder;
     // ========== 页面路由统一重定向到 /index（图标管理除外） ==========
 
     @GetMapping({"", "/index", "/bookmark/edit/**", "/folder/list",
@@ -290,5 +295,146 @@ public class AdminController {
     private String escHtml(String s) {
         if (s == null) return "";
         return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
+    }
+
+    // ========== 用户管理 API ==========
+
+    @GetMapping("/api/user/list")
+    @ResponseBody
+    public Map<String, Object> listUsers(@RequestParam(defaultValue = "1") int pageNum,
+                                            @RequestParam(defaultValue = "10") int pageSize,
+                                            @RequestParam(required = false) String keyword) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            PageResult<User> page = userService.pageList(pageNum, pageSize, keyword);
+            List<Map<String, Object>> list = page.getRecords().stream().map(u -> {
+                Map<String, Object> m = new HashMap<>();
+                m.put("id", u.getId());
+                m.put("userName", u.getUserName());
+                m.put("email", u.getEmail());
+                m.put("role", u.getRole());
+                m.put("introduction", u.getIntroduction());
+                m.put("createTime", u.getCreateTime() != null ? u.getCreateTime().toString().substring(0, 19) : "");
+                return m;
+            }).collect(java.util.stream.Collectors.toList());
+            result.put("success", true);
+            Map<String, Object> data = new HashMap<>();
+            data.put("list", list);
+            data.put("total", page.getTotal());
+            result.put("data", data);
+        } catch (Exception e) {
+            result.put("success", false);
+            result.put("message", e.getMessage());
+        }
+        return result;
+    }
+
+    @GetMapping("/api/user/detail")
+    @ResponseBody
+    public Map<String, Object> userDetail(@RequestParam Long id) {
+        Map<String, Object> result = new HashMap<>();
+        User user = userService.getById(id);
+        if (user == null) {
+            result.put("success", false);
+            result.put("message", "用户不存在");
+            return result;
+        }
+        Map<String, Object> data = new HashMap<>();
+        data.put("id", user.getId());
+        data.put("userName", user.getUserName());
+        data.put("email", user.getEmail());
+        data.put("role", user.getRole());
+        data.put("introduction", user.getIntroduction());
+        result.put("success", true);
+        result.put("data", data);
+        return result;
+    }
+
+    @PostMapping("/api/user/save")
+    @ResponseBody
+    public Map<String, Object> saveUser(@RequestBody Map<String, String> body,
+                                           @AuthenticationPrincipal UserDetails userDetails) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            String idStr = body.get("id");
+            String userName = body.getOrDefault("userName", "").trim();
+            String password = body.getOrDefault("password", "").trim();
+            String email = body.getOrDefault("email", "").trim();
+            String role = body.getOrDefault("role", "ROLE_USER");
+            String introduction = body.getOrDefault("introduction", "");
+
+            if (userName.isEmpty()) {
+                result.put("success", false);
+                result.put("message", "用户名不能为空");
+                return result;
+            }
+
+            if (idStr == null || idStr.isEmpty()) {
+                // 新建
+                if (password.isEmpty()) {
+                    result.put("success", false);
+                    result.put("message", "密码不能为空");
+                    return result;
+                }
+                if (userService.findByUserName(userName) != null) {
+                    result.put("success", false);
+                    result.put("message", "用户名已存在");
+                    return result;
+                }
+                User u = new User();
+                u.setUserName(userName);
+                u.setPassword(passwordEncoder.encode(password));
+                u.setEmail(email);
+                u.setRole(role);
+                u.setIntroduction(introduction);
+                userService.save(u);
+            } else {
+                // 编辑
+                User u = userService.getById(Long.valueOf(idStr));
+                if (u == null) {
+                    result.put("success", false);
+                    result.put("message", "用户不存在");
+                    return result;
+                }
+                if (!u.getUserName().equals(userName) && userService.findByUserName(userName) != null) {
+                    result.put("success", false);
+                    result.put("message", "用户名已存在");
+                    return result;
+                }
+                u.setUserName(userName);
+                if (!password.isEmpty()) {
+                    u.setPassword(passwordEncoder.encode(password));
+                }
+                u.setEmail(email);
+                u.setRole(role);
+                u.setIntroduction(introduction);
+                u.setUpdateTime(LocalDateTime.now());
+                userService.updateById(u);
+            }
+            result.put("success", true);
+            result.put("message", "保存成功");
+        } catch (Exception e) {
+            result.put("success", false);
+            result.put("message", e.getMessage());
+        }
+        return result;
+    }
+
+    @PostMapping("/api/user/delete")
+    @ResponseBody
+    public Map<String, Object> deleteUser(@RequestParam Long id,
+                                            @AuthenticationPrincipal UserDetails userDetails) {
+        Map<String, Object> result = new HashMap<>();
+        // 不允许删除自己
+        User current = userService.findByUserName(userDetails.getUsername());
+        if (current != null && current.getId().equals(id)) {
+            result.put("success", false);
+            result.put("message", "不能删除当前登录用户");
+            return result;
+        }
+        boolean ok = userService.removeById(id);
+        result.put("success", ok);
+        result.put("message", ok ? "删除成功" : "删除失败");
+        return result;
     }
 }

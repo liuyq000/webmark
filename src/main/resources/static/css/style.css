@@ -1394,3 +1394,11 @@ a {
 #bmMgmtPanel {
     max-width: 100%;
 }
+
+/* 超小按钮（用户管理表格操作列用） */
+.btn-xs {
+    padding: 2px 6px;
+    font-size: 12px;
+    line-height: 1.4;
+    border-radius: 3px;
+}

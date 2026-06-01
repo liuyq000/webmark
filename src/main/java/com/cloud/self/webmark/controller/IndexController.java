@@ -14,7 +14,6 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +38,7 @@ public class IndexController {
             user = userService.findByUserName(userDetails.getUsername());
             folderTree = user != null ? folderService.listTreeByUserId(user.getId()) : folderService.listPublicTree();
             model.addAttribute("user", user);
+            model.addAttribute("currentUser", user);
         } else {
             folderTree = folderService.listPublicTree();
         }

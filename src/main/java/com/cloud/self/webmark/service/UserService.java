@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -53,6 +52,10 @@ public class UserService {
 
     public User getById(Long id) {
         return dataStore.getUserRepository().findById(id);
+    }
+
+    public User save(User user) {
+        return dataStore.getUserRepository().save(user);
     }
 
     public boolean updateById(User user) {
