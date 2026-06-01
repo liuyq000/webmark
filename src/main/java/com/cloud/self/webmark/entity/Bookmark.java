@@ -24,10 +24,6 @@ public class Bookmark {
 
     private String tags;
 
-    private Integer viewCount;
-
-    private Integer collectCount;
-
     private Integer sortOrder;
 
     private Integer publicType;

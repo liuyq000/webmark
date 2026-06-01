@@ -109,8 +109,6 @@ public class ApiController {
             User user = userService.findByUserName(userDetails.getUsername());
             bookmark.setUserId(user.getId());
         }
-        if (bookmark.getViewCount() == null) bookmark.setViewCount(0);
-        if (bookmark.getCollectCount() == null) bookmark.setCollectCount(0);
         if (bookmark.getPublicType() == null) bookmark.setPublicType(1);
         if (bookmark.getReviewStatus() == null) bookmark.setReviewStatus(1);
         if (bookmark.getCreateTime() == null) bookmark.setCreateTime(LocalDateTime.now());

@@ -152,7 +152,7 @@
                             <div class="tree-item folder-parent d-flex justify-content-between align-items-center" th:attr="data-folder-id=${folder.id}" onclick="selectFolder(this)">
                                 <div class="text-truncate flex-grow-1">
                                     <span class="toggle-icon" th:if="${folder.children != null and !folder.children.isEmpty()}" onclick="event.stopPropagation(); toggleTree(this)">
-                                        <i class="bi bi-chevron-down"></i>
+                                        <i class="bi bi-chevron-right"></i>
                                     </span>
                                     <span class="toggle-icon" th:if="${folder.children == null or folder.children.isEmpty()}">&nbsp;</span>
                                     <i class="bi bi-folder-fill text-warning folder-icon"></i>
@@ -165,12 +165,12 @@
                                 </div>
                             </div>
                             <!-- 二级文件夹 -->
-                            <div class="tree-children" th:if="${folder.children != null}">
+                            <div class="tree-children" style="display: none" th:if="${folder.children != null}">
                                 <th:block th:each="child : ${folder.children}">
                                     <div class="tree-item d-flex justify-content-between align-items-center" style="padding-left:36px" th:attr="data-folder-id=${child.id}" onclick="selectFolder(this)">
                                         <div class="text-truncate flex-grow-1">
                                             <span class="toggle-icon" th:if="${child.children != null and !child.children.isEmpty()}" onclick="event.stopPropagation(); toggleTree(this)">
-                                                <i class="bi bi-chevron-down"></i>
+                                                <i class="bi bi-chevron-right"></i>
                                             </span>
                                             <span class="toggle-icon" th:if="${child.children == null or child.children.isEmpty()}">&nbsp;</span>
                                             <i class="bi bi-folder2 text-secondary folder-icon"></i>
@@ -183,7 +183,7 @@
                                         </div>
                                     </div>
                                     <!-- 三级文件夹 -->
-                                    <div class="tree-children" th:if="${child.children != null}">
+                                    <div class="tree-children" style="display: none" th:if="${child.children != null}">
                                         <div class="tree-item d-flex justify-content-between align-items-center" style="padding-left:56px" th:each="grandchild : ${child.children}" th:attr="data-folder-id=${grandchild.id}" onclick="selectFolder(this)">
                                             <div class="text-truncate flex-grow-1">
                                                 <span class="toggle-icon">&nbsp;</span>
@@ -525,7 +525,6 @@
                     </td>
                     <td><a href="${escapeHtml(b.url || '#')}" target="_blank" class="text-decoration-none small">${escapeHtml(abbreviate(b.url || '', 35))}</a></td>
                     <td>${b.publicType === 1 ? '<span class="badge bg-success">公开</span>' : '<span class="badge bg-warning text-dark">私密</span>'}</td>
-                    <td>${b.viewCount || 0}</td>
                     <td class="small">${formatTime(b.createTime)}</td>
                     <td>
                         <button class="btn btn-sm btn-outline-primary" onclick="openEditBookmarkModal(this)" data-id="${b.id}" data-title="${escapeAttr(b.title)}" data-url="${escapeAttr(b.url)}" data-folder-id="${b.folderId || ''}" data-description="${escapeAttr(b.description || '')}" data-logo-url="${escapeAttr(b.logoUrl || '')}" data-tags="${escapeAttr(b.tags || '')}" data-public-type="${b.publicType || 1}" title="编辑"><i class="bi bi-pencil"></i></button>

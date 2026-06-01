@@ -87,7 +87,7 @@ public class BookmarkService {
     /** 搜索公开书签 */
     public List<Bookmark> searchPublic(String key) {
         String lowerKey = key.toLowerCase();
-        return dataStore.getBookmarkRepository().findAllSorted(Comparator.comparing(Bookmark::getViewCount).reversed())
+        return dataStore.getBookmarkRepository().findAllSorted(defaultSort())
                 .stream()
                 .filter(b -> b.getPublicType() == 1)
                 .filter(b -> (b.getTitle() != null && b.getTitle().toLowerCase().contains(lowerKey))
@@ -115,7 +115,7 @@ public class BookmarkService {
     /** 热门书签 */
     public List<Bookmark> topHot(int limit) {
         return dataStore.getBookmarkRepository().top(limit,
-                Comparator.comparing(Bookmark::getViewCount).reversed())
+                Comparator.comparing(Bookmark::getCreateTime).reversed())
                 .stream()
                 .filter(b -> b.getPublicType() == 1)
                 .collect(Collectors.toList());
@@ -131,7 +131,7 @@ public class BookmarkService {
 
     /** 按文件夹ID列表查询所有书签（不限制公开状态） */
     public List<Bookmark> listByFolderIds(List<Long> folderIds) {
-        return dataStore.getBookmarkRepository().findAllSorted(Comparator.comparing(Bookmark::getViewCount).reversed())
+        return dataStore.getBookmarkRepository().findAllSorted(defaultSort())
                 .stream()
                 .filter(b -> folderIds == null || folderIds.isEmpty() || (b.getFolderId() != null && folderIds.contains(b.getFolderId())))
                 .collect(Collectors.toList());

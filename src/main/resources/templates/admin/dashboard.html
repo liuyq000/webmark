@@ -93,8 +93,7 @@
                                 <th style="width:50px">#</th>
                                 <th>名称</th>
                                 <th>URL</th>
-                                <th style="width:100px">访问量</th>
-                                <th style="width:80px">收藏数</th>
+
                             </tr>
                         </thead>
                         <tbody>
@@ -102,8 +101,7 @@
                                 <td th:text="${stat.index + 1}">1</td>
                                 <td th:text="${bookmark.title}">名称</td>
                                 <td><a th:href="${bookmark.url}" target="_blank" class="text-decoration-none small" th:text="${#strings.abbreviate(bookmark.url, 40)}">url</a></td>
-                                <td th:text="${bookmark.viewCount}">0</td>
-                                <td th:text="${bookmark.collectCount}">0</td>
+
                             </tr>
                         </tbody>
                     </table>

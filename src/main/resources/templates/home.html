@@ -97,10 +97,7 @@
                                 <div class="card-name" th:text="${bookmark.title}">资源名称</div>
                                 <div class="card-desc" th:text="${bookmark.description}">资源描述</div>
                             </div>
-                            <div class="card-stats">
-                                <span><i class="bi bi-eye"></i> <span th:text="${bookmark.viewCount >= 1000} ? ${#numbers.formatDecimal(bookmark.viewCount/1000.0, 1, 1)} + 'k' : ${bookmark.viewCount}">0</span></span>
-                                <span><i class="bi bi-star"></i> <span th:text="${bookmark.collectCount}">0</span></span>
-                            </div>
+
                         </a>
                     </div>
                 </div>

@@ -29,10 +29,9 @@
                 <div class="header-actions">
                     <div sec:authorize="isAuthenticated()">
                         <a class="header-btn my-btn" href="javascript:;" onclick="openBookmarkModal()"><i class="bi bi-plus-circle"></i> 新建书签</a>
-                        <a class="header-btn my-btn" th:href="@{/admin/index}"><i class="bi bi-person-fill"></i> 我的空间</a>
                     </div>
                     <div sec:authorize="!isAuthenticated()">
-                        <a class="header-btn admin-btn" th:href="@{/login?redirect=/admin/index}"><i class="bi bi-gear-fill"></i> 进入后台</a>
+                        <a class="header-btn admin-btn" th:href="@{/login}"><i class="bi bi-person-fill"></i> 登录 / 注册</a>
                     </div>
                 </div>
                 <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
@@ -67,66 +66,248 @@
                         </li>
                     </ul>
                 </div>
+                <!-- ====== 管理工具（登录后显示） ====== -->
+                <div sec:authorize="isAuthenticated()" class="sidebar-channel open" style="border-top:1px solid rgba(255,255,255,0.1);margin-top:8px;padding-top:4px">
+                    <div class="channel-title" style="font-size:12px;color:rgba(255,255,255,0.4);cursor:default"><i class="bi bi-tools channel-icon"></i><span class="channel-text">管理工具</span></div>
+                    <ul class="channel-list" style="max-height:none!important">
+                        <li><a href="javascript:;" onclick="showBmMgmt()"><i class="bi bi-bookmarks" style="margin-right:6px"></i>书签管理</a></li>
+                        <li><a href="javascript:;" onclick="switchToManage('import')"><i class="bi bi-upload" style="margin-right:6px"></i>导入收藏夹</a></li>
+                        <li><a href="javascript:;" onclick="switchToManage('export')"><i class="bi bi-download" style="margin-right:6px"></i>导出收藏夹</a></li>
+                        <li><a href="javascript:;" onclick="switchToManage('icons')"><i class="bi bi-emoji-smile" style="margin-right:6px"></i>图标管理</a></li>
+                    </ul>
+                </div>
+                <!-- 登出按钮 -->
+                <div sec:authorize="isAuthenticated()" style="position:absolute;bottom:0;left:0;right:0;border-top:1px solid rgba(255,255,255,0.1);padding:8px 16px">
+                    <form th:action="@{/logout}" method="post">
+                        <button type="submit" style="background:none;border:none;color:var(--sidebar-text);width:100%;text-align:left;padding:6px 0;font-size:14px;cursor:pointer">
+                            <i class="bi bi-box-arrow-right" style="margin-right:8px"></i>退出登录
+                        </button>
+                    </form>
+                </div>
             </nav>
         </aside>
 
         <!-- 右侧主内容区 -->
         <main class="main-content">
             <div class="content-wrapper">
-            <!-- 每个顶级文件夹一个内容面板 -->
-            <div th:each="entry : ${allGrouped}" class="folder-panel"
-                 th:attr="data-folder-id=${entry.key}"
-                 th:styleappend="${entry.key != folderId} ? 'display:none'">
-                <!-- 当前栏目标题 -->
-                <div class="current-folder-header">
-                    <h2 class="current-folder-title">
-                        <i class="bi" th:classappend="${folderTree[__${entryStat.index}__].icon != null ? folderTree[__${entryStat.index}__].icon : 'bi-folder'}"></i>
-                        <span th:text="${folderTree[__${entryStat.index}__].name}">栏目名</span>
-                    </h2>
+            <!-- ========== 浏览模式 ========== -->
+            <div id="bmBrowsePanel">
+                <!-- 每个顶级文件夹一个内容面板 -->
+                <div th:each="entry : ${allGrouped}" class="folder-panel"
+                     th:attr="data-folder-id=${entry.key}"
+                     th:styleappend="${entry.key != folderId} ? 'display:none'">
+                    <!-- 当前栏目标题 -->
+                    <div class="current-folder-header">
+                        <h2 class="current-folder-title">
+                            <i class="bi" th:classappend="${folderTree[__${entryStat.index}__].icon != null ? folderTree[__${entryStat.index}__].icon : 'bi-folder'}"></i>
+                            <span th:text="${folderTree[__${entryStat.index}__].name}">栏目名</span>
+                        </h2>
+                    </div>
+
+                    <!-- 书签卡片分组 -->
+                    <div th:each="sub : ${entry.value}" class="category-section" th:attr="data-section-name=${sub.key}">
+                        <div class="section-header">
+                            <h3 class="section-title" th:text="${sub.key}">分类名称</h3>
+                        </div>
+                        <div class="resource-grid">
+                            <a th:each="bookmark : ${sub.value}" th:href="${bookmark.url}" target="_blank" rel="noopener" class="resource-card" th:attr="data-bookmark-id=${bookmark.id}">
+                                <div class="card-icon">
+                                    <img th:if="${bookmark.logoUrl != null and !bookmark.logoUrl.isEmpty()}"
+                                         th:src="${bookmark.logoUrl}" th:alt="${bookmark.title}"
+                                         onerror="this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='flex';">
+                                    <div class="card-icon-fallback" th:styleappend="${bookmark.logoUrl != null and !bookmark.logoUrl.isEmpty()} ? 'display:none'"
+                                         th:text="${#strings.substring(bookmark.title, 0, 1)}">W</div>
+                                </div>
+                                <div class="card-info">
+                                    <div class="card-name" th:text="${bookmark.title}">资源名称</div>
+                                    <div class="card-desc" th:text="${bookmark.description}">资源描述</div>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- 书签卡片分组 -->
-                <div th:each="sub : ${entry.value}" class="category-section" th:attr="data-section-name=${sub.key}">
-                    <div class="section-header">
-                        <h3 class="section-title" th:text="${sub.key}">分类名称</h3>
+                <!-- 空状态 -->
+                <div th:if="${allGrouped == null or allGrouped.isEmpty()}" class="empty-state">
+                    <i class="bi bi-inbox"></i>
+                    <p>暂无资源数据</p>
+                </div>
+
+                <!-- 页脚 -->
+                <footer class="site-footer">
+                    <p>Copyright &copy; 2024 本地书签 | ICP备XXXXXXXX号</p>
+                    <div class="footer-links">
+                        <a href="#">关于我们</a>
+                        <a href="#">意见反馈</a>
+                        <a href="#">友情链接</a>
                     </div>
-                    <div class="resource-grid">
-                        <a th:each="bookmark : ${sub.value}" th:href="${bookmark.url}" target="_blank" rel="noopener" class="resource-card" th:attr="data-bookmark-id=${bookmark.id}">
-                            <div class="card-icon">
-                                <img th:if="${bookmark.logoUrl != null and !bookmark.logoUrl.isEmpty()}"
-                                     th:src="${bookmark.logoUrl}" th:alt="${bookmark.title}"
-                                     onerror="this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='flex';">
-                                <div class="card-icon-fallback" th:styleappend="${bookmark.logoUrl != null and !bookmark.logoUrl.isEmpty()} ? 'display:none'"
-                                     th:text="${#strings.substring(bookmark.title, 0, 1)}">W</div>
+                </footer>
+            </div>
+
+            <!-- ========== 管理面板（左树右表） ========== -->
+            <div id="bmMgmtPanel" style="display:none; position:fixed; top:56px; left:220px; right:0; bottom:0; background:#f5f6fa; z-index:900; padding:20px; overflow:auto;">
+                <h5 class="mb-3"><i class="bi bi-bookmarks"></i> 书签管理</h5>
+                <div class="d-flex shadow-sm" style="border-radius:8px; overflow:hidden; max-width:100%;">
+                    <!-- 左侧文件夹树 -->
+                    <div class="mgmt-tree-panel">
+                        <div class="tree-header d-flex justify-content-between align-items-center pe-2">
+                            <span><i class="bi bi-folder2-open"></i> 文件夹</span>
+                            <button class="btn btn-sm btn-link text-decoration-none p-0 text-primary" onclick="openAddFolderModal()" title="新增顶级文件夹">
+                                <i class="bi bi-plus-circle fs-6"></i>
+                            </button>
+                        </div>
+                        <div class="py-1">
+                            <!-- 全部书签 -->
+                            <div class="tree-item active" data-folder-id="" onclick="selectFolder(this)">
+                                <span style="display:inline-block;width:16px"></span>
+                                <i class="bi bi-layers folder-icon"></i> 全部书签
                             </div>
-                            <div class="card-info">
-                                <div class="card-name" th:text="${bookmark.title}">资源名称</div>
-                                <div class="card-desc" th:text="${bookmark.description}">资源描述</div>
+                            <!-- 一级文件夹 -->
+                            <th:block th:each="folder : ${folderTree}">
+                                <div class="tree-item folder-parent d-flex justify-content-between align-items-center" th:attr="data-folder-id=${folder.id}" onclick="selectFolder(this)">
+                                    <div class="text-truncate flex-grow-1">
+                                        <span class="toggle-icon" th:if="${folder.children != null and !folder.children.isEmpty()}" onclick="event.stopPropagation(); toggleTree(this)">
+                                            <i class="bi bi-chevron-down"></i>
+                                        </span>
+                                        <span class="toggle-icon" th:if="${folder.children == null or folder.children.isEmpty()}">&nbsp;</span>
+                                        <i class="bi bi-folder-fill text-warning folder-icon"></i>
+                                        <span th:text="${folder.name}">文件夹</span>
+                                    </div>
+                                    <div class="tree-item-actions">
+                                        <i class="bi bi-pencil" onclick="event.stopPropagation(); openEditFolderModal(this)" th:attr="data-id=${folder.id},data-name=${folder.name},data-name-en=${folder.nameEn},data-icon=${folder.icon},data-sort=${folder.sortOrder},data-parent-id=${folder.parentId}" title="编辑"></i>
+                                        <i class="bi bi-plus-circle" onclick="event.stopPropagation(); openAddFolderModal(this)" th:attr="data-parent-folder-id=${folder.id}" title="新增子文件夹"></i>
+                                        <i class="bi bi-trash" onclick="event.stopPropagation(); openDeleteFolderModal(this)" th:attr="data-folder-id=${folder.id}" title="删除"></i>
+                                    </div>
+                                </div>
+                                <!-- 二级文件夹 -->
+                                <div class="tree-children" th:if="${folder.children != null}">
+                                    <th:block th:each="child : ${folder.children}">
+                                        <div class="tree-item d-flex justify-content-between align-items-center" style="padding-left:36px" th:attr="data-folder-id=${child.id}" onclick="selectFolder(this)">
+                                            <div class="text-truncate flex-grow-1">
+                                                <span class="toggle-icon" th:if="${child.children != null and !child.children.isEmpty()}" onclick="event.stopPropagation(); toggleTree(this)">
+                                                    <i class="bi bi-chevron-down"></i>
+                                                </span>
+                                                <span class="toggle-icon" th:if="${child.children == null or child.children.isEmpty()}">&nbsp;</span>
+                                                <i class="bi bi-folder2 text-secondary folder-icon"></i>
+                                                <span th:text="${child.name}">子文件夹</span>
+                                            </div>
+                                            <div class="tree-item-actions">
+                                                <i class="bi bi-pencil" onclick="event.stopPropagation(); openEditFolderModal(this)" th:attr="data-id=${child.id},data-name=${child.name},data-name-en=${child.nameEn},data-icon=${child.icon},data-sort=${child.sortOrder},data-parent-id=${child.parentId}" title="编辑"></i>
+                                                <i class="bi bi-plus-circle" onclick="event.stopPropagation(); openAddFolderModal(this)" th:attr="data-parent-folder-id=${child.id}" title="新增子文件夹"></i>
+                                                <i class="bi bi-trash" onclick="event.stopPropagation(); openDeleteFolderModal(this)" th:attr="data-folder-id=${child.id}" title="删除"></i>
+                                            </div>
+                                        </div>
+                                        <!-- 三级文件夹 -->
+                                        <div class="tree-children" th:if="${child.children != null}">
+                                            <div class="tree-item d-flex justify-content-between align-items-center" style="padding-left:56px" th:each="grandchild : ${child.children}" th:attr="data-folder-id=${grandchild.id}" onclick="selectFolder(this)">
+                                                <div class="text-truncate flex-grow-1">
+                                                    <span class="toggle-icon">&nbsp;</span>
+                                                    <i class="bi bi-folder2-open text-muted folder-icon"></i>
+                                                    <span th:text="${grandchild.name}">三级</span>
+                                                </div>
+                                                <div class="tree-item-actions">
+                                                    <i class="bi bi-pencil" onclick="event.stopPropagation(); openEditFolderModal(this)" th:attr="data-id=${grandchild.id},data-name=${grandchild.name},data-name-en=${grandchild.nameEn},data-icon=${grandchild.icon},data-sort=${grandchild.sortOrder},data-parent-id=${grandchild.parentId}" title="编辑"></i>
+                                                    <i class="bi bi-plus-circle" onclick="event.stopPropagation(); openAddFolderModal(this)" th:attr="data-parent-folder-id=${grandchild.id}" title="新增子文件夹"></i>
+                                                    <i class="bi bi-trash" onclick="event.stopPropagation(); openDeleteFolderModal(this)" th:attr="data-folder-id=${grandchild.id}" title="删除"></i>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </th:block>
+                                </div>
+                            </th:block>
+                        </div>
+                    </div>
+
+                    <!-- 右侧书签表 -->
+                    <div class="mgmt-table-panel">
+                        <!-- 搜索栏 -->
+                        <div class="p-2 border-bottom bg-light">
+                            <form class="row g-2 align-items-end" onsubmit="searchBookmarks(event)">
+                                <div class="col-md-4">
+                                    <input type="text" id="searchKeyword" class="form-control form-control-sm" placeholder="搜索标题/URL">
+                                </div>
+                                <div class="col-md-2">
+                                    <select id="searchPublicType" class="form-select form-select-sm">
+                                        <option value="">全部类型</option>
+                                        <option value="1">公开</option>
+                                        <option value="0">私密</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i> 搜索</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetSearch()">重置</button>
+                                </div>
+                                <div class="col-md-3 text-end">
+                                    <span class="text-muted small ms-2" id="bookmarkCount">共 0 条</span>
+                                </div>
+                            </form>
+                            <div class="text-end mt-2">
+                                <button type="button" class="btn btn-success btn-sm" onclick="openCreateBookmarkModal()"><i class="bi bi-plus-lg"></i> 新建书签</button>
                             </div>
-                            <div class="card-stats">
-                                <span><i class="bi bi-eye"></i> <span th:text="${bookmark.viewCount >= 1000} ? ${#numbers.formatDecimal(bookmark.viewCount/1000.0, 1, 1)} + 'k' : ${bookmark.viewCount}">0</span></span>
-                                <span><i class="bi bi-star"></i> <span th:text="${bookmark.collectCount}">0</span></span>
+                        </div>
+                        <!-- 表格 -->
+                        <table class="table table-hover" id="bookmarkTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width:30px"></th>
+                                    <th style="width:50px">ID</th>
+                                    <th>标题</th>
+                                    <th>URL</th>
+                                    <th style="width:70px">类型</th>
+                                    <th style="width:130px">创建时间</th>
+                                    <th style="width:110px">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bookmarkTableBody">
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted py-4">加载中...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <!-- 分页 -->
+                        <div class="d-flex justify-content-between align-items-center p-2 border-top" id="paginationArea">
+                            <nav>
+                                <ul class="pagination pagination-sm mb-0" id="paginationList"></ul>
+                            </nav>
+                            <div>
+                                <select class="form-select form-select-sm" style="width:auto;min-width:90px" id="pageSizeSelect" onchange="changePageSize(this.value)">
+                                    <option value="10">10条/页</option>
+                                    <option value="20">20条/页</option>
+                                    <option value="50">50条/页</option>
+                                    <option value="100">100条/页</option>
+                                </select>
                             </div>
-                        </a>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- 空状态 -->
-            <div th:if="${allGrouped == null or allGrouped.isEmpty()}" class="empty-state">
-                <i class="bi bi-inbox"></i>
-                <p>暂无资源数据</p>
-            </div>
-
-            <!-- 页脚 -->
-            <footer class="site-footer">
-                <p>Copyright &copy; 2024 本地书签 | ICP备XXXXXXXX号</p>
-                <div class="footer-links">
-                    <a href="#">关于我们</a>
-                    <a href="#">意见反馈</a>
-                    <a href="#">友情链接</a>
+            <!-- ========== 导入/导出模态框（侧边栏快捷操作） ========== -->
+            <div class="modal fade" id="importModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+                <div class="modal-header"><h5 class="modal-title">导入书签</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <form id="importForm" enctype="multipart/form-data">
+                        <div class="mb-2"><label class="form-label">选择书签文件</label><input type="file" class="form-control form-control-sm" id="importFile" accept=".html,.htm" required></div>
+                        <div class="form-check mb-1"><input class="form-check-input" type="checkbox" id="importStructure" value="YES" checked><label class="form-check-label">按目录结构导入</label></div>
+                        <div class="form-check mb-2"><input class="form-check-input" type="checkbox" id="importPrivate" value="PRIVATE"><label class="form-check-label">私密导入</label></div>
+                    </form>
+                    <div id="importStatus" class="small"></div>
                 </div>
-            </footer>
+                <div class="modal-footer"><button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">取消</button><button class="btn btn-sm btn-primary" onclick="doImport()">开始导入</button></div>
+            </div></div></div>
+
+            <div class="modal fade" id="exportModal" tabindex="-1"><div class="modal-dialog modal-sm"><div class="modal-content">
+                <div class="modal-header"><h5 class="modal-title">导出书签</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <div class="mb-2"><label class="form-label">格式</label>
+                        <select class="form-select form-select-sm" id="exportFormat"><option value="html">HTML</option><option value="json">JSON</option><option value="csv">CSV</option></select>
+                    </div>
+                    <div class="mb-2"><label class="form-label">范围</label>
+                        <select class="form-select form-select-sm" id="exportScope"><option value="all">全部</option><option value="public">公开</option><option value="private">私密</option></select>
+                    </div>
+                </div>
+                <div class="modal-footer"><button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">取消</button><button class="btn btn-sm btn-primary" onclick="doExport()">下载</button></div>
+            </div></div></div>
             </div>
         </main>
     </div>
@@ -147,6 +328,162 @@
                 <div class="search-overlay-empty">
                     <i class="bi bi-search"></i>
                     <p>输入关键词开始搜索</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 管理面板书签模态框（与浏览模式共用的是一个，但管理模式用自有JS) -->
+    <div class="modal fade" id="mgrBookmarkModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="mgrBookmarkModalTitle">新建书签</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="mgrBookmarkForm" onsubmit="return false">
+                        <input type="hidden" id="mgrModalBookmarkId">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="mgrModalBookmarkTitle" class="form-label">标题 <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="mgrModalBookmarkTitle" required placeholder="请输入书签标题">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="mgrModalBookmarkUrl" class="form-label">URL <span class="text-danger">*</span></label>
+                                <input type="url" class="form-control" id="mgrModalBookmarkUrl" required placeholder="https://example.com">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">所属文件夹</label>
+                                <div class="tree-select">
+                                    <div class="tree-select-input form-control d-flex align-items-center justify-content-between" onclick="toggleMgrBookmarkTreePanel()">
+                                        <span id="mgrModalBookmarkFolderLabel" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">请选择文件夹</span>
+                                        <i class="bi bi-chevron-down" style="font-size:12px;color:#aaa"></i>
+                                    </div>
+                                    <input type="hidden" id="mgrModalBookmarkFolderId" value="">
+                                    <div class="tree-select-dropdown" id="mgrBookmarkTreeSelectDropdown"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="mgrModalBookmarkLogoUrl" class="form-label">Logo URL</label>
+                                <input type="text" class="form-control" id="mgrModalBookmarkLogoUrl" placeholder="网站图标地址（可选）">
+                            </div>
+                            <div class="col-12">
+                                <label for="mgrModalBookmarkDescription" class="form-label">描述</label>
+                                <textarea class="form-control" id="mgrModalBookmarkDescription" rows="2" placeholder="书签描述（可选）"></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="mgrModalBookmarkTags" class="form-label">标签</label>
+                                <input type="text" class="form-control" id="mgrModalBookmarkTags" placeholder="多个标签用逗号分隔">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">类型</label>
+                                <div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="mgrModalBookmarkPublicType" id="mgrPublicType1" value="1" checked>
+                                        <label class="form-check-label" for="mgrPublicType1">公开</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="mgrModalBookmarkPublicType" id="mgrPublicType0" value="0">
+                                        <label class="form-check-label" for="mgrPublicType0">私密</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="submitMgrBookmarkModal()">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 删除书签确认模态框 -->
+    <div class="modal fade" id="deleteBookmarkModal" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">确认删除</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>确定要删除该书签吗？此操作不可恢复。</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="confirmDeleteBookmark()">删除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增/编辑文件夹模态框 -->
+    <div class="modal fade" id="folderModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="folderModalTitle">新增文件夹</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="folderForm" onsubmit="return false">
+                        <input type="hidden" id="folderId">
+                        <div class="mb-3">
+                            <label class="form-label">父级文件夹</label>
+                            <div class="tree-select">
+                                <div class="tree-select-input form-control d-flex align-items-center justify-content-between" onclick="toggleMgrTreePanel()">
+                                    <span id="folderParentLabel" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">无（顶级文件夹）</span>
+                                    <i class="bi bi-chevron-down" style="font-size:12px;color:#aaa"></i>
+                                </div>
+                                <input type="hidden" id="folderParentId" value="">
+                                <div class="tree-select-dropdown" id="mgrTreeSelectDropdown"></div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="folderName" class="form-label">名称 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="folderName" required placeholder="请输入文件夹名称">
+                        </div>
+                        <div class="mb-3">
+                            <label for="folderNameEn" class="form-label">英文名</label>
+                            <input type="text" class="form-control" id="folderNameEn" placeholder="请输入英文名">
+                        </div>
+                        <div class="mb-3">
+                            <label for="folderIcon" class="form-label">图标</label>
+                            <input type="text" class="form-control" id="folderIcon" placeholder="如：bi-folder, bi-code-slash">
+                            <div class="form-text">Bootstrap Icons 图标类名</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="folderSortOrder" class="form-label">排序</label>
+                            <input type="number" class="form-control" id="folderSortOrder" value="0" min="0">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="saveMgrFolder()">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 删除文件夹确认模态框 -->
+    <div class="modal fade" id="deleteFolderModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteFolderTitle">确认删除</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="deleteFolderMessage">确定要删除该文件夹吗？</p>
+                    <div id="deleteFolderWarning" class="alert alert-warning d-none mt-2 mb-0"></div>
+                    <div id="deleteFolderError" class="alert alert-danger d-none mt-2 mb-0"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-danger btn-sm" id="deleteFolderBtn" onclick="confirmDeleteFolder()">删除</button>
                 </div>
             </div>
         </div>
@@ -227,5 +564,524 @@
 
     <script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
     <script th:src="@{/js/main.js}"></script>
+    <script>
+    // ========== 管理模式切换 ==========
+    function showBmMgmt() {
+        var sidebar = document.getElementById('sidebar');
+        var sidebarW = sidebar && sidebar.classList.contains('mini') ? 60 : 220;
+        var mgmtPanel = document.getElementById('bmMgmtPanel');
+        if (mgmtPanel) {
+            mgmtPanel.style.left = sidebarW + 'px';
+            mgmtPanel.style.display = 'block';
+        }
+        document.getElementById('bmBrowsePanel').style.display = 'none';
+        loadBookmarks();
+    }
+    function hideBmMgmt() {
+        document.getElementById('bmBrowsePanel').style.display = '';
+        document.getElementById('bmMgmtPanel').style.display = 'none';
+    }
+
+    // ========== 侧边栏管理工具快捷操作 ==========
+    function switchToManage(feature) {
+        if (feature === 'import') new bootstrap.Modal(document.getElementById('importModal')).show();
+        else if (feature === 'export') new bootstrap.Modal(document.getElementById('exportModal')).show();
+        else if (feature === 'icons') window.open('/admin/icon/list', '_blank');
+        else if (feature === 'bookmark') showBmMgmt();
+    }
+
+    // ========== 导入导出 ==========
+    function openImportModal() { new bootstrap.Modal(document.getElementById('importModal')).show(); }
+    async function doImport() {
+        var file = document.getElementById('importFile');
+        if (!file.files.length) { alert('请选择文件'); return; }
+        var fd = new FormData();
+        fd.append('htmlFile', file.files[0]);
+        if (document.getElementById('importStructure').checked) fd.append('structure', 'YES');
+        if (document.getElementById('importPrivate').checked) fd.append('type', 'PRIVATE');
+        var st = document.getElementById('importStatus');
+        st.textContent = '导入中...'; st.className = 'small text-muted';
+        try {
+            var resp = await fetch('/admin/tool/import', { method: 'POST', body: fd });
+            var d = await resp.json();
+            st.textContent = d.message; st.className = 'small ' + (d.success ? 'text-success' : 'text-danger');
+            if (d.success) setTimeout(function() { location.reload(); }, 1500);
+        } catch(e) { st.textContent = '导入失败'; st.className = 'small text-danger'; }
+    }
+    function openExportModal() { new bootstrap.Modal(document.getElementById('exportModal')).show(); }
+    function doExport() {
+        var fmt = document.getElementById('exportFormat').value;
+        var scope = document.getElementById('exportScope').value;
+        window.open('/admin/tool/export/download?format=' + fmt + '&scope=' + scope, '_blank');
+    }
+
+    // ========== 工具函数 ==========
+    function esc(s) { if (!s) return ''; return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+    function escapeHtml(s) { if (!s) return ''; return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+    function abbreviate(s, max) { if (!s) return ''; return s.length > max ? s.substring(0, max) + '...' : s; }
+    function formatTime(t) {
+        if (!t) return '';
+        if (Array.isArray(t)) return t.slice(0,3).join('-') + ' ' + t.slice(3,6).map(function(v) { return String(v).padStart(2,'0'); }).join(':');
+        return t.replace('T', ' ').substring(0, 16);
+    }
+    function escapeAttr(s) { if (!s) return ''; return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    // ========== 管理面板全局变量 ==========
+    var currentFolderId = null;
+    var currentPage = 1;
+    var currentSize = 10;
+    var currentAbort = null;
+    var deleteBookmarkId = null;
+    var deleteFolderId = null;
+    var draggedRow = null;
+    var draggedFolder = null;
+
+    // ========== 选中文件夹 ==========
+    function selectFolder(el) {
+        document.querySelectorAll('#bmMgmtPanel .tree-item').forEach(function(item) { item.classList.remove('active'); });
+        el.classList.add('active');
+        var fid = el.getAttribute('data-folder-id');
+        currentFolderId = fid ? Number(fid) : null;
+        currentPage = 1;
+        loadBookmarks();
+    }
+
+    function toggleTree(icon) {
+        var ti = icon.closest('.tree-item');
+        var cd = ti.nextElementSibling;
+        if (!cd || !cd.classList.contains('tree-children')) return;
+        var ch = cd.style.display === 'none';
+        cd.style.display = ch ? '' : 'none';
+        var i = icon.querySelector('i');
+        if (i) { i.className = ch ? 'bi bi-chevron-down' : 'bi bi-chevron-right'; }
+    }
+
+    // ========== 加载书签列表 ==========
+    async function loadBookmarks() {
+        console.log('📡 loadBookmarks() 被调用  currentFolderId=' + currentFolderId + ' currentPage=' + currentPage + ' currentSize=' + currentSize);
+        if (currentAbort) currentAbort.abort();
+        var ac = new AbortController();
+        currentAbort = ac;
+        var sig = ac.signal;
+        var kwEl = document.getElementById('searchKeyword');
+        var ptEl = document.getElementById('searchPublicType');
+        console.log('  → searchKeyword:', kwEl ? '找到' : '未找到', 'searchPublicType:', ptEl ? '找到' : '未找到');
+        var keyword = kwEl ? kwEl.value.trim() : '';
+        var publicType = ptEl ? ptEl.value : '';
+        var cf = currentFolderId, cp = currentPage;
+
+        var url = '/api/admin/bookmarks?page=' + currentPage + '&size=' + currentSize;
+        if (currentFolderId != null) url += '&folderId=' + currentFolderId;
+        if (keyword) url += '&keyword=' + encodeURIComponent(keyword);
+        if (publicType) url += '&publicType=' + publicType;
+        console.log('  → 请求URL:', url);
+
+        try {
+            var resp = await fetch(url, { signal: sig });
+            console.log('  → 响应状态:', resp.status, resp.statusText);
+            var data = await resp.json();
+            console.log('  → 响应数据:', 'total=' + data.total, 'pages=' + data.pages, 'records=' + (data.records ? data.records.length : 0));
+            if (currentPage !== cp || currentFolderId !== cf) { console.log('  → ⏭️ 状态已变，忽略'); return; }
+            renderMgrTable(data);
+            renderMgrPagination(data);
+        } catch(e) {
+            console.error('  → ❌ 错误:', e.name, e.message);
+            if (e.name === 'AbortError') return;
+            var tbody = document.getElementById('bookmarkTableBody');
+            if (tbody) tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">加载失败: ' + e.message + '</td></tr>';
+        }
+    }
+
+    function renderMgrTable(data) {
+        var tbody = document.getElementById('bookmarkTableBody');
+        var records = data.records || [];
+        var countEl = document.getElementById('bookmarkCount');
+        console.log('  → renderMgrTable: records=' + records.length, 'tbody:', tbody ? '找到' : '未找到', 'countEl:', countEl ? '找到' : '未找到');
+        if (countEl) countEl.textContent = '共 ' + (data.total || 0) + ' 条';
+        if (records.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">暂无书签数据</td></tr>';
+            console.log('  → 暂无书签数据');
+            return;
+        }
+        var html = records.map(function(b) {
+            try {
+                return '<tr draggable="true" data-id="' + b.id + '" data-sort="' + (b.sortOrder || 0) + '" ondragstart="tableDragStart(event)" ondragend="tableDragEnd(event)">'
+                    + '<td><i class="bi bi-grip-vertical text-muted" style="cursor:grab"></i></td>'
+                    + '<td>' + b.id + '</td>'
+                    + '<td>' + (b.logoUrl ? '<img src="' + escapeAttr(b.logoUrl) + '" class="bookmark-logo" onerror="this.style.display=\'none\'">' : '') + escapeHtml(b.title || '') + '</td>'
+                    + '<td><a href="' + escapeAttr(b.url || '#') + '" target="_blank" class="text-decoration-none small">' + escapeHtml(abbreviate(b.url || '', 35)) + '</a></td>'
+                    + '<td>' + (b.publicType === 1 ? '<span class="badge bg-success">公开</span>' : '<span class="badge bg-warning text-dark">私密</span>') + '</td>'
+                    + '<td class="small">' + formatTime(b.createTime) + '</td>'
+                    + '<td>'
+                    + '<button class="btn btn-sm btn-outline-primary" onclick="openEditMgrBookmarkModal(this)" data-id="' + b.id + '" data-title="' + escapeAttr(b.title) + '" data-url="' + escapeAttr(b.url) + '" data-folder-id="' + (b.folderId || '') + '" data-description="' + escapeAttr(b.description || '') + '" data-logo-url="' + escapeAttr(b.logoUrl || '') + '" data-tags="' + escapeAttr(b.tags || '') + '" data-public-type="' + (b.publicType || 1) + '" title="编辑"><i class="bi bi-pencil"></i></button> '
+                    + '<button class="btn btn-sm btn-outline-danger" onclick="deleteMgrBookmark(' + b.id + ')" title="删除"><i class="bi bi-trash"></i></button>'
+                    + '</td></tr>';
+            } catch(e) { console.error('  → ❌ 行渲染失败:', e, b); return ''; }
+        }).join('');
+        tbody.innerHTML = html;
+        console.log('  → 表格HTML已写入, 长度:', html.length, '字符');
+        // 验证渲染结果
+        console.log('  → tbody中tr数量:', tbody.querySelectorAll('tr').length);
+    }
+
+    function renderMgrPagination(data) {
+        var list = document.getElementById('paginationList');
+        console.log('  → renderMgrPagination: list:', list ? '找到' : '未找到', 'pages=' + data.pages, 'current=' + data.current);
+        if (!list) { console.error('  → ❌ paginationList 未找到'); return; }
+        var total = data.pages || 1;
+        var cur = data.current || 1;
+        if (total <= 1) {
+            list.innerHTML = '<li class="page-item disabled"><a class="page-link">上一页</a></li>'
+                + '<li class="page-item active"><a class="page-link" href="#">1</a></li>'
+                + '<li class="page-item disabled"><a class="page-link">下一页</a></li>';
+            return;
+        }
+        var pages = [];
+        pages.push(1);
+        var start = Math.max(2, cur - 2);
+        var end = Math.min(total - 1, cur + 2);
+        if (start > 2) pages.push('...');
+        for (var i = start; i <= end; i++) pages.push(i);
+        if (end < total - 1) pages.push('...');
+        pages.push(total);
+        var html = '';
+        html += '<li class="page-item ' + (cur <= 1 ? 'disabled' : '') + '"><a class="page-link" href="#" onclick="goMgrPage(' + (cur - 1) + ');return false">上一页</a></li>';
+        pages.forEach(function(p) {
+            if (p === '...') { html += '<li class="page-item disabled"><a class="page-link">...</a></li>'; }
+            else { html += '<li class="page-item ' + (p === cur ? 'active' : '') + '"><a class="page-link" href="#" onclick="goMgrPage(' + p + ');return false">' + p + '</a></li>'; }
+        });
+        html += '<li class="page-item ' + (cur >= total ? 'disabled' : '') + '"><a class="page-link" href="#" onclick="goMgrPage(' + (cur + 1) + ');return false">下一页</a></li>';
+        list.innerHTML = html;
+    }
+
+    function goMgrPage(p) { currentPage = p; loadBookmarks(); }
+    function changePageSize(size) { currentSize = Number(size); currentPage = 1; loadBookmarks(); }
+    function searchBookmarks(e) { e.preventDefault(); currentPage = 1; loadBookmarks(); }
+    function resetSearch() {
+        var kw = document.getElementById('searchKeyword');
+        var pt = document.getElementById('searchPublicType');
+        if (kw) kw.value = '';
+        if (pt) pt.value = '';
+        currentPage = 1;
+        loadBookmarks();
+    }
+
+    // ========== 表格行拖动排序 ==========
+    function tableDragStart(e) {
+        draggedRow = e.target.closest('tr');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', '');
+        setTimeout(function() { if (draggedRow) draggedRow.classList.add('bg-light'); }, 0);
+    }
+    function tableDragEnd(e) {
+        var row = e.target.closest('tr');
+        if (row) row.classList.remove('bg-light');
+        draggedRow = null;
+    }
+
+    document.addEventListener('dragover', function(e) {
+        if (document.getElementById('bmMgmtPanel').style.display === 'none') return;
+        var tr = e.target.closest('tr[data-id]');
+        if (!tr || !draggedRow || tr === draggedRow) return;
+        e.preventDefault();
+        var tbody = document.getElementById('bookmarkTableBody');
+        var rows = [...tbody.querySelectorAll('tr[data-id]')];
+        var fromIdx = rows.indexOf(draggedRow);
+        var toIdx = rows.indexOf(tr);
+        if (fromIdx < 0 || toIdx < 0) return;
+        if (fromIdx < toIdx) tr.after(draggedRow); else tr.before(draggedRow);
+        var allRows = [...tbody.querySelectorAll('tr[data-id]')];
+        var updates = allRows.map(function(r, i) { return { id: Number(r.dataset.id), sortOrder: i + 1 }; });
+        fetch('/api/admin/sort/bookmarks', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updates) }).catch(function() {});
+        allRows.forEach(function(r, i) { r.dataset.sort = i + 1; });
+    });
+
+    // ========== 文件夹树拖动排序 ==========
+    setTimeout(function initMgrFolderDrag() {
+        document.querySelectorAll('#bmMgmtPanel .tree-item[data-folder-id]').forEach(function(el) {
+            var fid = el.getAttribute('data-folder-id');
+            if (fid === '' || fid === null) return;
+            el.setAttribute('draggable', 'true');
+        });
+    }, 100);
+
+    document.addEventListener('dragstart', function(e) {
+        if (document.getElementById('bmMgmtPanel').style.display === 'none') return;
+        var ti = e.target.closest('#bmMgmtPanel .tree-item[data-folder-id]');
+        if (!ti || !ti.getAttribute('draggable')) return;
+        draggedFolder = ti;
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', '');
+    });
+
+    document.addEventListener('dragend', function(e) { draggedFolder = null; });
+
+    document.addEventListener('dragover', function(e) {
+        if (document.getElementById('bmMgmtPanel').style.display === 'none') return;
+        var ti = e.target.closest('#bmMgmtPanel .tree-item[data-folder-id]');
+        if (!ti || !draggedFolder || ti === draggedFolder || draggedFolder.parentNode !== ti.parentNode) return;
+        e.preventDefault();
+        var parent = ti.parentNode;
+        var items = [];
+        for (var ci = 0; ci < parent.children.length; ci++) {
+            var c = parent.children[ci];
+            if (c.classList && c.classList.contains('tree-item') && c.getAttribute('data-folder-id') && c.getAttribute('data-folder-id') !== '') {
+                items.push(c);
+            }
+        }
+        var fromIdx = items.indexOf(draggedFolder);
+        var toIdx = items.indexOf(ti);
+        if (fromIdx < 0 || toIdx < 0) return;
+        if (fromIdx < toIdx) ti.after(draggedFolder); else ti.before(draggedFolder);
+        var updates = items.map(function(r, i) { return { id: Number(r.getAttribute('data-folder-id')), sortOrder: i + 1 }; });
+        fetch('/api/admin/sort/folders', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updates) }).catch(function() {});
+    });
+
+    // ========== 书签 Modal CRUD（管理模式） ==========
+
+    // 树形选择器 - 管理工作
+    function buildMgrBookmarkTreeSelector(selectedFolderId) {
+        var dropdown = document.getElementById('mgrBookmarkTreeSelectDropdown');
+        var hidden = document.getElementById('mgrModalBookmarkFolderId');
+        var label = document.getElementById('mgrModalBookmarkFolderLabel');
+        if (!dropdown || !hidden) return;
+        function setLabel(v, t) { hidden.value = v; label.textContent = t; }
+        if (!selectedFolderId) { setLabel('', '请选择文件夹'); }
+        else {
+            (function findName(folders) {
+                for (var i = 0; i < folders.length; i++) { var f = folders[i]; if (f.id == selectedFolderId) { setLabel(f.id, f.name); return; } if (f.children) findName(f.children); }
+            })(folderTreeData || []);
+        }
+        dropdown.innerHTML = '';
+        if (typeof folderTreeData === 'undefined') return;
+        function renderTree(folders, level, parentEl) {
+            var container = parentEl || dropdown;
+            folders.forEach(function(f) {
+                var hasChildren = f.children && f.children.length > 0;
+                var div = document.createElement('div');
+                div.className = 'tree-select-item' + (f.id == selectedFolderId ? ' select-selected' : '');
+                div.style.paddingLeft = (12 + level * 20) + 'px';
+                var ts = document.createElement('span');
+                if (hasChildren) {
+                    ts.className = 'ts-toggle'; ts.innerHTML = '<i class="bi bi-chevron-down"></i>';
+                    ts.onclick = function(e) { e.stopPropagation(); var cd = div.nextElementSibling; if (cd && cd.classList.contains('tree-select-children')) { var h = cd.style.display === 'none'; cd.style.display = h ? '' : 'none'; ts.querySelector('i').className = h ? 'bi bi-chevron-down' : 'bi bi-chevron-right'; } };
+                } else { ts.className = 'ts-empty'; }
+                div.appendChild(ts);
+                var ns = document.createElement('span'); ns.className = 'ts-name'; ns.textContent = f.name;
+                div.appendChild(ns);
+                div.onclick = function() { setLabel(f.id, f.name); dropdown.querySelectorAll('.select-selected').forEach(function(el) { el.classList.remove('select-selected'); }); div.classList.add('select-selected'); closeMgrBookmarkTreePanel(); };
+                container.appendChild(div);
+                if (hasChildren) {
+                    var cd = document.createElement('div'); cd.className = 'tree-select-children'; cd.style.display = 'none';
+                    container.appendChild(cd);
+                    renderTree(f.children, level + 1, cd);
+                }
+            });
+        }
+        renderTree(folderTreeData, 0);
+    }
+
+    function toggleMgrBookmarkTreePanel() { var dd = document.getElementById('mgrBookmarkTreeSelectDropdown'); if (dd) dd.classList.toggle('open'); }
+    function closeMgrBookmarkTreePanel() { var dd = document.getElementById('mgrBookmarkTreeSelectDropdown'); if (dd) dd.classList.remove('open'); }
+
+    function openCreateBookmarkModal() {
+        document.getElementById('mgrModalBookmarkId').value = '';
+        document.getElementById('mgrBookmarkModalTitle').textContent = '新建书签';
+        document.getElementById('mgrModalBookmarkTitle').value = '';
+        document.getElementById('mgrModalBookmarkUrl').value = '';
+        document.getElementById('mgrModalBookmarkDescription').value = '';
+        document.getElementById('mgrModalBookmarkLogoUrl').value = '';
+        document.getElementById('mgrModalBookmarkTags').value = '';
+        var r = document.querySelector('input[name="mgrModalBookmarkPublicType"][value="1"]');
+        if (r) r.checked = true;
+        buildMgrBookmarkTreeSelector(currentFolderId || null);
+        new bootstrap.Modal(document.getElementById('mgrBookmarkModal')).show();
+    }
+
+    function openEditMgrBookmarkModal(btn) {
+        document.getElementById('mgrModalBookmarkId').value = btn.dataset.id;
+        document.getElementById('mgrBookmarkModalTitle').textContent = '编辑书签';
+        document.getElementById('mgrModalBookmarkTitle').value = btn.dataset.title || '';
+        document.getElementById('mgrModalBookmarkUrl').value = btn.dataset.url || '';
+        document.getElementById('mgrModalBookmarkDescription').value = btn.dataset.description || '';
+        document.getElementById('mgrModalBookmarkLogoUrl').value = btn.dataset.logoUrl || '';
+        document.getElementById('mgrModalBookmarkTags').value = btn.dataset.tags || '';
+        var pt = btn.dataset.publicType || '1';
+        var pr = document.querySelector('input[name="mgrModalBookmarkPublicType"][value="' + pt + '"]');
+        if (pr) pr.checked = true;
+        buildMgrBookmarkTreeSelector(btn.dataset.folderId ? Number(btn.dataset.folderId) : null);
+        new bootstrap.Modal(document.getElementById('mgrBookmarkModal')).show();
+    }
+
+    async function submitMgrBookmarkModal() {
+        var id = document.getElementById('mgrModalBookmarkId').value;
+        var title = document.getElementById('mgrModalBookmarkTitle').value.trim();
+        var url = document.getElementById('mgrModalBookmarkUrl').value.trim();
+        if (!title) { alert('请输入标题'); return; }
+        if (!url) { alert('请输入URL'); return; }
+        if (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('/')) { alert('请输入有效的URL（以 http:// 或 https:// 开头）'); return; }
+        var fid = document.getElementById('mgrModalBookmarkFolderId').value;
+        var desc = document.getElementById('mgrModalBookmarkDescription').value.trim();
+        var logo = document.getElementById('mgrModalBookmarkLogoUrl').value.trim();
+        var tags = document.getElementById('mgrModalBookmarkTags').value.trim();
+        var ptRadio = document.querySelector('input[name="mgrModalBookmarkPublicType"]:checked');
+        if (!ptRadio) { alert('请选择类型（公开/私密）'); return; }
+        var pt = parseInt(ptRadio.value);
+        var body = { title: title, url: url, folderId: fid ? Number(fid) : null, description: desc, logoUrl: logo, tags: tags, publicType: pt };
+        try {
+            var resp;
+            if (id) { resp = await fetch('/api/admin/bookmarks/' + id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); }
+            else { resp = await fetch('/api/admin/bookmarks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); }
+            if (resp.ok) { bootstrap.Modal.getInstance(document.getElementById('mgrBookmarkModal')).hide(); loadBookmarks(); }
+            else { var err = await resp.json().catch(function() { return {}; }); alert('保存失败：' + (err.message || '服务器错误')); }
+        } catch(e) { alert('保存失败：网络错误'); }
+    }
+
+    function deleteMgrBookmark(id) { deleteBookmarkId = id; new bootstrap.Modal(document.getElementById('deleteBookmarkModal')).show(); }
+    async function confirmDeleteBookmark() {
+        if (!deleteBookmarkId) return;
+        try {
+            var resp = await fetch('/api/admin/bookmarks/' + deleteBookmarkId, { method: 'DELETE' });
+            if (resp.ok) { bootstrap.Modal.getInstance(document.getElementById('deleteBookmarkModal')).hide(); loadBookmarks(); }
+            else { alert('删除失败'); bootstrap.Modal.getInstance(document.getElementById('deleteBookmarkModal')).hide(); }
+        } catch(e) { alert('删除失败：' + e.message); }
+        deleteBookmarkId = null;
+    }
+
+    // 点击外部关闭管理书签树形选择器
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('#mgrBookmarkTreeSelectDropdown, #mgrBookmarkModal .tree-select-input')) {
+            closeMgrBookmarkTreePanel();
+        }
+    });
+
+    // ========== 文件夹 CRUD（管理模式） ==========
+
+    // 文件夹父级树形选择器
+    function buildMgrFolderTreeSelector(selectedParentId) {
+        var dropdown = document.getElementById('mgrTreeSelectDropdown');
+        var hidden = document.getElementById('folderParentId');
+        var label = document.getElementById('folderParentLabel');
+        function setLabel(v, t) { hidden.value = v; label.textContent = t; }
+        if (!selectedParentId) setLabel('', '无（顶级文件夹）');
+        dropdown.innerHTML = '';
+        if (typeof folderTreeData === 'undefined') return;
+        var topItem = document.createElement('div');
+        topItem.className = 'tree-select-item' + (!selectedParentId ? ' select-selected' : '');
+        topItem.style.paddingLeft = '12px';
+        var es = document.createElement('span'); es.className = 'ts-empty'; topItem.appendChild(es);
+        var tn = document.createElement('span'); tn.className = 'ts-name'; tn.textContent = '无（顶级文件夹）'; topItem.appendChild(tn);
+        topItem.onclick = function() { setLabel('', '无（顶级文件夹）'); dropdown.querySelectorAll('.select-selected').forEach(function(el) { el.classList.remove('select-selected'); }); topItem.classList.add('select-selected'); closeMgrTreePanel(); };
+        dropdown.appendChild(topItem);
+        function renderTree(folders, level, parentEl) {
+            var container = parentEl || dropdown;
+            folders.forEach(function(f) {
+                var hasChildren = f.children && f.children.length > 0;
+                var div = document.createElement('div');
+                div.className = 'tree-select-item' + (f.id == selectedParentId ? ' select-selected' : '');
+                div.style.paddingLeft = (12 + level * 20) + 'px';
+                var ts = document.createElement('span');
+                if (hasChildren) { ts.className = 'ts-toggle'; ts.innerHTML = '<i class="bi bi-chevron-down"></i>'; ts.onclick = function(e) { e.stopPropagation(); var cd = div.nextElementSibling; if (cd && cd.classList.contains('tree-select-children')) { var h = cd.style.display === 'none'; cd.style.display = h ? '' : 'none'; ts.querySelector('i').className = h ? 'bi bi-chevron-down' : 'bi bi-chevron-right'; } }; }
+                else { ts.className = 'ts-empty'; }
+                div.appendChild(ts);
+                var ns = document.createElement('span'); ns.className = 'ts-name'; ns.textContent = f.name;
+                div.appendChild(ns);
+                div.onclick = function() { setLabel(f.id, f.name); dropdown.querySelectorAll('.select-selected').forEach(function(el) { el.classList.remove('select-selected'); }); div.classList.add('select-selected'); closeMgrTreePanel(); };
+                container.appendChild(div);
+                if (hasChildren) { var cd = document.createElement('div'); cd.className = 'tree-select-children'; cd.style.display = 'none'; container.appendChild(cd); renderTree(f.children, level + 1, cd); }
+            });
+        }
+        renderTree(folderTreeData, 0);
+    }
+
+    function toggleMgrTreePanel() { var dd = document.getElementById('mgrTreeSelectDropdown'); if (dd) dd.classList.toggle('open'); }
+    function closeMgrTreePanel() { var dd = document.getElementById('mgrTreeSelectDropdown'); if (dd) dd.classList.remove('open'); }
+
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('#folderModal .tree-select')) { closeMgrTreePanel(); }
+    });
+
+    function openAddFolderModal(btn) {
+        document.getElementById('folderForm').reset();
+        document.getElementById('folderId').value = '';
+        var pid = btn ? (btn.dataset.parentFolderId || '') : '';
+        buildMgrFolderTreeSelector(pid || null);
+        document.getElementById('folderModalTitle').textContent = pid ? '新增子文件夹' : '新增文件夹';
+        document.getElementById('folderSortOrder').value = '0';
+        new bootstrap.Modal(document.getElementById('folderModal')).show();
+    }
+
+    function openEditFolderModal(btn) {
+        document.getElementById('folderForm').reset();
+        document.getElementById('folderId').value = btn.dataset.id;
+        buildMgrFolderTreeSelector(btn.dataset.parentId || null);
+        document.getElementById('folderName').value = btn.dataset.name || '';
+        document.getElementById('folderNameEn').value = btn.dataset.nameEn || '';
+        document.getElementById('folderIcon').value = btn.dataset.icon || '';
+        document.getElementById('folderSortOrder').value = btn.dataset.sort || '0';
+        document.getElementById('folderModalTitle').textContent = '编辑文件夹';
+        new bootstrap.Modal(document.getElementById('folderModal')).show();
+    }
+
+    async function saveMgrFolder() {
+        var id = document.getElementById('folderId').value;
+        var name = document.getElementById('folderName').value.trim();
+        if (!name) { alert('请输入文件夹名称'); return; }
+        var pidVal = document.getElementById('folderParentId').value;
+        var data = { name: name, nameEn: document.getElementById('folderNameEn').value.trim(), icon: document.getElementById('folderIcon').value.trim(), sortOrder: parseInt(document.getElementById('folderSortOrder').value) || 0, parentId: pidVal ? Number(pidVal) : null };
+        try {
+            var resp;
+            if (id) { resp = await fetch('/api/folders/' + id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }); }
+            else { resp = await fetch('/api/folders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }); }
+            if (resp.ok) { bootstrap.Modal.getInstance(document.getElementById('folderModal')).hide(); location.reload(); }
+            else { var r = await resp.json(); alert(r.message || '保存失败'); }
+        } catch(e) { alert('保存失败：' + e.message); }
+    }
+
+    function openDeleteFolderModal(btn) {
+        deleteFolderId = Number(btn.dataset.folderId);
+        document.getElementById('deleteFolderTitle').textContent = '确认删除';
+        document.getElementById('deleteFolderMessage').textContent = '正在检查文件夹内容...';
+        var w = document.getElementById('deleteFolderWarning'); if (w) w.classList.add('d-none');
+        var e = document.getElementById('deleteFolderError'); if (e) e.classList.add('d-none');
+        var b = document.getElementById('deleteFolderBtn'); b.disabled = true; b.textContent = '检查中...';
+        new bootstrap.Modal(document.getElementById('deleteFolderModal')).show();
+        checkFolderContents();
+    }
+
+    async function checkFolderContents() {
+        try {
+            var resp = await fetch('/api/folders/' + deleteFolderId + '?force=false', { method: 'DELETE' });
+            var data = await resp.json();
+            if (data.hasChildren) {
+                document.getElementById('deleteFolderTitle').textContent = '⚠ 确认级联删除';
+                document.getElementById('deleteFolderMessage').textContent = '该文件夹下有 ' + data.childFolderCount + ' 个子目录和 ' + data.bookmarkCount + ' 个书签。';
+                var w = document.getElementById('deleteFolderWarning');
+                if (w) { w.textContent = '确认后，所有子目录和书签将一并删除，此操作不可恢复！'; w.classList.remove('d-none'); }
+                var b = document.getElementById('deleteFolderBtn'); b.disabled = false; b.textContent = '确认全部删除'; b.className = 'btn btn-danger btn-sm';
+            } else {
+                document.getElementById('deleteFolderMessage').textContent = '确定要删除该文件夹吗？此操作不可恢复。';
+                var b = document.getElementById('deleteFolderBtn'); b.disabled = false; b.textContent = '确认删除';
+            }
+        } catch(e) {
+            var er = document.getElementById('deleteFolderError');
+            if (er) { er.textContent = '检查失败：' + e.message; er.classList.remove('d-none'); }
+            document.getElementById('deleteFolderBtn').disabled = true;
+        }
+    }
+
+    async function confirmDeleteFolder() {
+        if (!deleteFolderId) return;
+        var btn = document.getElementById('deleteFolderBtn');
+        btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>删除中';
+        try {
+            var resp = await fetch('/api/folders/' + deleteFolderId + '?force=true', { method: 'DELETE' });
+            var data = await resp.json();
+            if (data.success) { bootstrap.Modal.getInstance(document.getElementById('deleteFolderModal')).hide(); location.reload(); }
+            else { var er = document.getElementById('deleteFolderError'); if (er) { er.textContent = data.message || '删除失败'; er.classList.remove('d-none'); } }
+        } catch(e) { var er = document.getElementById('deleteFolderError'); if (er) { er.textContent = '网络错误：' + e.message; er.classList.remove('d-none'); } }
+        btn.disabled = false; btn.textContent = '确认删除';
+    }
+    </script>
 </body>
 </html>

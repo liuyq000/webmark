@@ -36,6 +36,11 @@ document.addEventListener('DOMContentLoaded', function () {
         if (sidebarToggleDesktop) {
             sidebarToggleDesktop.querySelector('i').style.transform = isMini ? 'rotate(180deg)' : '';
         }
+        // 管理中面板打开时同步调整位置
+        var mgmtPanel = document.getElementById('bmMgmtPanel');
+        if (mgmtPanel && mgmtPanel.style.display === 'block') {
+            mgmtPanel.style.left = (isMini ? 60 : 220) + 'px';
+        }
         try { localStorage.setItem(SIDEBAR_MINI_KEY, isMini ? '1' : ''); } catch (e) {}
     }
 
@@ -235,6 +240,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 切换文件夹面板
     function switchFolderPanel(folderId) {
+        // 如果管理中面板显示，先隐藏（只有带folderId的导航才隐藏管理面板）
+        if (folderId != null && typeof hideBmMgmt === 'function') hideBmMgmt();
+
         // 切换面板显示
         document.querySelectorAll('.folder-panel').forEach(function (panel) {
             panel.style.display = panel.getAttribute('data-folder-id') === folderId ? '' : 'none';
@@ -358,12 +366,10 @@ document.addEventListener('DOMContentLoaded', function () {
                             } else {
                                 logoHtml = '<div class="sri-fallback">' + initial + '</div>';
                             }
-                            var viewText = item.viewCount >= 1000 ? (item.viewCount / 1000).toFixed(1) + 'k' : (item.viewCount || 0);
                             html += '<a class="search-result-item" href="' + item.url + '" target="_blank" rel="noopener">' +
                                 '<div class="sri-icon">' + logoHtml + '</div>' +
                                 '<div class="sri-info"><div class="sri-name">' + escapeHtml(item.title) + '</div>' +
-                                '<div class="sri-desc">' + escapeHtml(item.description || '') + '</div></div>' +
-                                '<div class="sri-stats"><i class="bi bi-eye"></i> ' + viewText + '</div></a>';
+                                '<div class="sri-desc">' + escapeHtml(item.description || '') + '</div></div></a>';
                         });
                         html += '</div>';
                         searchOverlayBody.innerHTML = html;
