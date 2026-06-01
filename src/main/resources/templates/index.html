@@ -6,6 +6,7 @@
     <title>本地书签 - 发现优质资源</title>
     <link th:href="@{/webjars/bootstrap/css/bootstrap.min.css}" rel="stylesheet">
     <link th:href="@{/webjars/bootstrap-icons/font/bootstrap-icons.css}" rel="stylesheet">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%234f6ef7' d='M2 2v13l6-3 6 3V2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1z'/%3E%3C/svg%3E">
     <link th:href="@{/css/style.css}" rel="stylesheet">
     <style>
         #bmMgmtPanel .tree-children { display: none !important; }
@@ -69,9 +70,6 @@
                     <div sec:authorize="isAuthenticated()">
                         <a class="header-btn my-btn" href="javascript:;" onclick="openBookmarkModal()"><i class="bi bi-plus-circle"></i> 新建书签</a>
                     </div>
-                    <div sec:authorize="!isAuthenticated()">
-                        <a class="header-btn admin-btn" th:href="@{/login}"><i class="bi bi-person-fill"></i> 登录 / 注册</a>
-                    </div>
                 </div>
                 <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
             </div>
@@ -105,21 +103,36 @@
                         </li>
                     </ul>
                 </div>
-                <!-- ====== 管理工具（登录后显示） ====== -->
-                <div sec:authorize="isAuthenticated()" class="sidebar-channel open" style="border-top:1px solid rgba(255,255,255,0.1);margin-top:8px;padding-top:4px">
-                    <div class="channel-title" style="font-size:12px;color:rgba(255,255,255,0.4);cursor:default"><i class="bi bi-tools channel-icon"></i><span class="channel-text">管理工具</span></div>
-                    <ul class="channel-list" style="max-height:none!important">
-                        <li><a href="javascript:;" onclick="showBmMgmt()"><i class="bi bi-bookmarks" style="margin-right:6px"></i>书签管理</a></li>
-                        <li><a href="javascript:;" onclick="showUserMgmt()"><i class="bi bi-person-gear" style="margin-right:6px"></i>用户管理</a></li>
-                    </ul>
+                <!-- 用户下拉菜单（登录后显示） -->
+                <div sec:authorize="isAuthenticated()" id="userDropdown" style="position:absolute;bottom:0;left:0;right:0;border-top:1px solid rgba(255,255,255,0.1);">
+                    <div id="userDropdownMenu" style="display:none;overflow:hidden;">
+                        <ul style="list-style:none;padding:0;margin:0;border-bottom:1px solid rgba(255,255,255,0.08);">
+                            <li><a href="javascript:;" onclick="showBmMgmt();closeUserDropdown();" style="display:block;padding:10px 16px 10px 40px;color:var(--sidebar-text);font-size:13px;transition:all 0.15s;border-left:3px solid transparent"><i class="bi bi-bookmarks" style="margin-right:8px;font-size:13px"></i>书签管理</a></li>
+                            <li><a href="javascript:;" onclick="showUserMgmt();closeUserDropdown();" style="display:block;padding:10px 16px 10px 40px;color:var(--sidebar-text);font-size:13px;transition:all 0.15s;border-left:3px solid transparent"><i class="bi bi-person-gear" style="margin-right:8px;font-size:13px"></i>用户管理</a></li>
+                            <li><a href="javascript:;" onclick="showCollectTool();closeUserDropdown();" style="display:block;padding:10px 16px 10px 40px;color:var(--sidebar-text);font-size:13px;transition:all 0.15s;border-left:3px solid transparent"><i class="bi bi-globe" style="margin-right:8px;font-size:13px"></i>网页收集工具</a></li>
+                            <li>
+                                <form th:action="@{/logout}" method="post" style="margin:0;">
+                                    <button type="submit" style="width:100%;background:none;border:none;color:var(--sidebar-text);padding:10px 16px 10px 40px;font-size:13px;cursor:pointer;text-align:left;border-left:3px solid transparent;display:flex;align-items:center;">
+                                        <i class="bi bi-box-arrow-right" style="margin-right:8px;font-size:13px"></i>退出登录
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                    <button type="button" id="userDropdownToggle" style="width:100%;background:none;border:none;color:var(--sidebar-text);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-size:14px;">
+                        <span style="display:flex;align-items:center;overflow:hidden;">
+                            <i class="bi bi-person-circle" style="margin-right:8px;font-size:16px;flex-shrink:0"></i>
+                            <span th:text="${user.userName}" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px">admin</span>
+                        </span>
+                        <i class="bi bi-caret-up-fill" id="userDropdownArrow" style="font-size:12px;flex-shrink:0;transition:transform 0.2s"></i>
+                    </button>
                 </div>
-                <!-- 登出按钮 -->
-                <div sec:authorize="isAuthenticated()" style="position:absolute;bottom:0;left:0;right:0;border-top:1px solid rgba(255,255,255,0.1);padding:8px 16px">
-                    <form th:action="@{/logout}" method="post">
-                        <button type="submit" style="background:none;border:none;color:var(--sidebar-text);width:100%;text-align:left;padding:6px 0;font-size:14px;cursor:pointer">
-                            <i class="bi bi-box-arrow-right" style="margin-right:8px"></i>退出登录
-                        </button>
-                    </form>
+                <!-- 未登录：左侧底部登录入口 -->
+                <div sec:authorize="!isAuthenticated()" id="guestLoginBar" style="position:absolute;bottom:0;left:0;right:0;border-top:1px solid rgba(255,255,255,0.1);">
+                    <a th:href="@{/login}" style="display:flex;align-items:center;padding:10px 16px;color:var(--sidebar-text);text-decoration:none;font-size:13px;transition:background 0.15s;">
+                        <i class="bi bi-person-circle" style="margin-right:8px;font-size:16px"></i>
+                        <span>登录 / 注册</span>
+                    </a>
                 </div>
             </nav>
         </aside>
@@ -136,8 +149,8 @@
                     <!-- 当前栏目标题 -->
                     <div class="current-folder-header">
                         <h2 class="current-folder-title">
-                            <i class="bi" th:classappend="${folderTree[__${entryStat.index}__].icon != null ? folderTree[__${entryStat.index}__].icon : 'bi-folder'}"></i>
-                            <span th:text="${folderTree[__${entryStat.index}__].name}">栏目名</span>
+                            <i class="bi" th:classappend="${folderMap[entry.key] != null && folderMap[entry.key].icon != null ? folderMap[entry.key].icon : 'bi-folder'}"></i>
+                            <span th:text="${folderMap[entry.key] != null ? folderMap[entry.key].name : '栏目'}">栏目名</span>
                         </h2>
                     </div>
 
@@ -171,7 +184,7 @@
                 </div>
 
                 <!-- 页脚 -->
-                <footer class="site-footer">
+                <footer class="site-footer" style="display:none">
                     <p>Copyright &copy; 2024 本地书签 | ICP备XXXXXXXX号</p>
                     <div class="footer-links">
                         <a href="#">关于我们</a>
@@ -179,6 +192,26 @@
                         <a href="#">友情链接</a>
                     </div>
                 </footer>
+                <!-- 内容为空时显示引导 -->
+                <div th:if="${#maps.isEmpty(allGrouped)}" class="text-center py-5" style="color:#999">
+                    <div id="bmBrowsePanelEmpty" class="py-5">
+                        <i class="bi bi-bookmark-star" style="font-size:64px;display:block;margin-bottom:16px;color:#ddd"></i>
+                        <h5 style="font-weight:600;color:#666">欢迎来到本地书签</h5>
+                        <p class="mb-1" style="font-size:14px">收录你喜爱的网站，分类整理，随时查阅</p>
+                        <p class="mt-3" style="font-size:13px">
+                            <span sec:authorize="!isAuthenticated()">
+                                <i class="bi bi-person-circle me-1"></i>
+                                <a th:href="@{/login}" class="text-decoration-none">登录</a>
+                                <span class="mx-2">|</span>
+                                <a th:href="@{/register}" class="text-decoration-none">注册</a>
+                            </span>
+                            <span sec:authorize="isAuthenticated()">
+                                <i class="bi bi-plus-circle me-1"></i>
+                                <a href="javascript:;" onclick="openBookmarkModal()" class="text-decoration-none">新建书签</a>
+                            </span>
+                        </p>
+                    </div>
+                </div>
             </div>
 
             <!-- ========== 管理面板（左树右表） ========== -->
@@ -398,6 +431,41 @@
             </div></div></div>
 
             </div>
+
+            <!-- 网页收集工具面板 -->
+            <div id="collectToolPanel" style="display:none; position:fixed; top:56px; left:220px; right:0; bottom:0; background:#f5f6fa; z-index:900; padding:24px; overflow:auto;">
+                <h5 class="mb-3"><i class="bi bi-globe me-2"></i>网页收集工具</h5>
+                <div style="max-width:650px">
+                    <div class="card border-0 shadow-sm mb-3">
+                        <div class="card-body">
+                            <h6 class="card-title"><i class="bi bi-puzzle me-1"></i> 1、使用浏览器扩展收藏网页</h6>
+                            <p class="text-muted mb-2">支持：Chrome / 360极速 / QQ / UC / 百度浏览器</p>
+                            <a target="_blank" href="https://chrome.google.com/webstore/detail/%E4%BA%91%E6%94%B6%E8%97%8F/gnidnmkcdgfiemdaeijncglpgldflhbb?hl=zh-CN" class="btn btn-primary btn-sm">
+                                <i class="bi bi-download me-1"></i>下载扩展
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card border-0 shadow-sm mb-3">
+                        <div class="card-body">
+                            <h6 class="card-title"><i class="bi bi-bookmark-plus me-1"></i> 2、网页收集小工具</h6>
+                            <p class="text-muted mb-2">将该按钮拖动至浏览器书签栏，在任意网页点击即可收藏</p>
+                            <a th:attr="href=${bookmarkletPath}" onclick="alert('请把这个按钮拖到您的浏览器书签栏'); return false;" class="btn btn-success btn-sm">
+                                <i class="bi bi-bookmark-star me-1"></i>本地书签
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body text-center">
+                            <h6 class="card-title mb-3">使用说明</h6>
+                            <div class="text-start text-muted small">
+                                <p><strong>浏览器扩展方式：</strong>安装扩展后，在任意网页点击扩展图标即可快速收藏当前页面到本地书签。</p>
+                                <p><strong>书签栏小工具方式：</strong>将上方「本地书签」按钮直接拖拽到浏览器书签栏。之后在任意网页点击该书签，即可一键收藏当前页面。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </main>
     </div>
 
@@ -758,12 +826,15 @@
             mgmtPanel.style.display = 'block';
         }
         document.getElementById('bmBrowsePanel').style.display = 'none';
+        document.getElementById('userMgmtPanel').style.display = 'none';
+        document.getElementById('collectToolPanel').style.display = 'none';
         loadBookmarks();
     }
     function hideBmMgmt() {
         document.getElementById('bmBrowsePanel').style.display = '';
         document.getElementById('bmMgmtPanel').style.display = 'none';
         document.getElementById('userMgmtPanel').style.display = 'none';
+        document.getElementById('collectToolPanel').style.display = 'none';
     }
 
     function showUserMgmt() {
@@ -776,7 +847,21 @@
         }
         document.getElementById('bmBrowsePanel').style.display = 'none';
         document.getElementById('bmMgmtPanel').style.display = 'none';
+        document.getElementById('collectToolPanel').style.display = 'none';
         loadUserList(1);
+    }
+
+    function showCollectTool() {
+        var sidebar = document.getElementById('sidebar');
+        var sidebarW = sidebar && sidebar.classList.contains('mini') ? 60 : 220;
+        var panel = document.getElementById('collectToolPanel');
+        if (panel) {
+            panel.style.left = sidebarW + 'px';
+            panel.style.display = 'block';
+        }
+        document.getElementById('bmBrowsePanel').style.display = 'none';
+        document.getElementById('bmMgmtPanel').style.display = 'none';
+        document.getElementById('userMgmtPanel').style.display = 'none';
     }
 
     // ========== 用户列表管理 ==========
@@ -920,6 +1005,7 @@
     function switchToManage(feature) {
         if (feature === 'bookmark') showBmMgmt();
         if (feature === 'user') showUserMgmt();
+        if (feature === 'collect') showCollectTool();
     }
 
     // ========== 导入导出 ==========
@@ -937,7 +1023,7 @@
             var resp = await fetch('/admin/tool/import', { method: 'POST', body: fd });
             var d = await resp.json();
             st.textContent = d.message; st.className = 'small ' + (d.success ? 'text-success' : 'text-danger');
-            if (d.success) setTimeout(function() { location.reload(); }, 1500);
+            if (d.success) scheduleRefresh();
         } catch(e) { st.textContent = '导入失败'; st.className = 'small text-danger'; }
     }
     function openExportModal() {
@@ -1213,14 +1299,12 @@
 
     // ========== 加载书签列表 ==========
     async function loadBookmarks() {
-        console.log('📡 loadBookmarks() 被调用  currentFolderId=' + currentFolderId + ' currentPage=' + currentPage + ' currentSize=' + currentSize);
         if (currentAbort) currentAbort.abort();
         var ac = new AbortController();
         currentAbort = ac;
         var sig = ac.signal;
         var kwEl = document.getElementById('searchKeyword');
         var ptEl = document.getElementById('searchPublicType');
-        console.log('  → searchKeyword:', kwEl ? '找到' : '未找到', 'searchPublicType:', ptEl ? '找到' : '未找到');
         var keyword = kwEl ? kwEl.value.trim() : '';
         var publicType = ptEl ? ptEl.value : '';
         var cf = currentFolderId, cp = currentPage;
@@ -1229,18 +1313,14 @@
         if (currentFolderId != null) url += '&folderId=' + currentFolderId;
         if (keyword) url += '&keyword=' + encodeURIComponent(keyword);
         if (publicType) url += '&publicType=' + publicType;
-        console.log('  → 请求URL:', url);
 
         try {
             var resp = await fetch(url, { signal: sig });
-            console.log('  → 响应状态:', resp.status, resp.statusText);
             var data = await resp.json();
-            console.log('  → 响应数据:', 'total=' + data.total, 'pages=' + data.pages, 'records=' + (data.records ? data.records.length : 0));
-            if (currentPage !== cp || currentFolderId !== cf) { console.log('  → ⏭️ 状态已变，忽略'); return; }
+            if (currentPage !== cp || currentFolderId !== cf) { return; }
             renderMgrTable(data);
             renderMgrPagination(data);
         } catch(e) {
-            console.error('  → ❌ 错误:', e.name, e.message);
             if (e.name === 'AbortError') return;
             var tbody = document.getElementById('bookmarkTableBody');
             if (tbody) tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">加载失败: ' + e.message + '</td></tr>';
@@ -1251,11 +1331,9 @@
         var tbody = document.getElementById('bookmarkTableBody');
         var records = data.records || [];
         var countEl = document.getElementById('bookmarkCount');
-        console.log('  → renderMgrTable: records=' + records.length, 'tbody:', tbody ? '找到' : '未找到', 'countEl:', countEl ? '找到' : '未找到');
         if (countEl) countEl.textContent = '共 ' + (data.total || 0) + ' 条';
         if (records.length === 0) {
             tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">暂无书签数据</td></tr>';
-            console.log('  → 暂无书签数据');
             return;
         }
         var html = records.map(function(b) {
@@ -1271,18 +1349,14 @@
                     + '<button class="btn btn-sm btn-outline-primary" onclick="openEditMgrBookmarkModal(this)" data-id="' + b.id + '" data-title="' + escapeAttr(b.title) + '" data-url="' + escapeAttr(b.url) + '" data-folder-id="' + (b.folderId || '') + '" data-description="' + escapeAttr(b.description || '') + '" data-logo-url="' + escapeAttr(b.logoUrl || '') + '" data-tags="' + escapeAttr(b.tags || '') + '" data-public-type="' + (b.publicType || 1) + '" title="编辑"><i class="bi bi-pencil"></i></button> '
                     + '<button class="btn btn-sm btn-outline-danger" onclick="deleteMgrBookmark(' + b.id + ')" title="删除"><i class="bi bi-trash"></i></button>'
                     + '</td></tr>';
-            } catch(e) { console.error('  → ❌ 行渲染失败:', e, b); return ''; }
+            } catch(e) { return ''; }
         }).join('');
         tbody.innerHTML = html;
-        console.log('  → 表格HTML已写入, 长度:', html.length, '字符');
-        // 验证渲染结果
-        console.log('  → tbody中tr数量:', tbody.querySelectorAll('tr').length);
     }
 
     function renderMgrPagination(data) {
         var list = document.getElementById('paginationList');
-        console.log('  → renderMgrPagination: list:', list ? '找到' : '未找到', 'pages=' + data.pages, 'current=' + data.current);
-        if (!list) { console.error('  → ❌ paginationList 未找到'); return; }
+        if (!list) return;
         var total = data.pages || 1;
         var cur = data.current || 1;
         if (total <= 1) {
@@ -1352,13 +1426,29 @@
     });
 
     // ========== 文件夹树拖动排序 ==========
-    setTimeout(function initMgrFolderDrag() {
-        document.querySelectorAll('#bmMgmtPanel .tree-item[data-folder-id]').forEach(function(el) {
+    function enableMgrFolderDrag() {
+        document.querySelectorAll('#bmMgmtPanel .tree-item[data-folder-id], .mgmt-tree-panel .tree-item[data-folder-id]').forEach(function(el) {
             var fid = el.getAttribute('data-folder-id');
             if (fid === '' || fid === null) return;
             el.setAttribute('draggable', 'true');
         });
-    }, 100);
+    }
+    setTimeout(enableMgrFolderDrag, 100);
+
+    // MutationObserver 兜底：监控管理中文件树 DOM 变化，自动给新 tree-item 加 draggable
+    (function watchMgrTreeDrag() {
+        var target = document.querySelector('#bmMgmtPanel .mgmt-tree-panel > div.py-1') || document.querySelector('.mgmt-tree-panel');
+        if (!target) return;
+        var obs = new MutationObserver(function() {
+            document.querySelectorAll('#bmMgmtPanel .tree-item[data-folder-id]').forEach(function(el) {
+                var fid = el.getAttribute('data-folder-id');
+                if (fid !== '' && fid !== null && !el.getAttribute('draggable')) {
+                    el.setAttribute('draggable', 'true');
+                }
+            });
+        });
+        obs.observe(target, { childList: true, subtree: true });
+    })();
 
     document.addEventListener('dragstart', function(e) {
         if (document.getElementById('bmMgmtPanel').style.display === 'none') return;
@@ -1388,8 +1478,10 @@
         var toIdx = items.indexOf(ti);
         if (fromIdx < 0 || toIdx < 0) return;
         if (fromIdx < toIdx) ti.after(draggedFolder); else ti.before(draggedFolder);
-        var updates = items.map(function(r, i) { return { id: Number(r.getAttribute('data-folder-id')), sortOrder: i + 1 }; });
-        fetch('/api/admin/sort/folders', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updates) }).catch(function() {});
+        // 在 DOM 重排后重新获取当前实际顺序，修复此前用旧 items 计算排序导致保存的 sortOrder 不变的问题
+        var currentItems = parent.querySelectorAll(':scope > .tree-item[data-folder-id]:not([data-folder-id=""])');
+        var updates = Array.from(currentItems).map(function(r, i) { return { id: Number(r.getAttribute('data-folder-id')), sortOrder: i + 1 }; });
+        fetch('/api/admin/sort/folders', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updates) }).then(function() { scheduleRefresh(); }).catch(function() {});
     });
 
     // ========== 书签 Modal CRUD（管理模式） ==========
@@ -1556,6 +1648,171 @@
         if (!e.target.closest('#folderModal .tree-select')) { closeMgrTreePanel(); }
     });
 
+    // ========== 文件夹/书签变更后局部刷新（不闪白） ==========
+    var refreshTimer = null;
+    // 使用事件委托绑定侧边栏点击，确保 innerHTML 替换后事件始终有效（只需绑定一次）
+    document.addEventListener('click', function(e) {
+        // 侧边栏频道展开收起
+        var title = e.target.closest('.sidebar-nav .channel-title[data-toggle="channel"]');
+        if (title) {
+            var channel = title.closest('.sidebar-channel');
+            var folderId = title.getAttribute('data-folder-id');
+            if (folderId) { switchFolderPanel(folderId); }
+            var wasOpen = channel.classList.contains('open');
+            document.querySelectorAll('.sidebar-nav .sidebar-channel').forEach(function(c) {
+                if (c.querySelector('[data-toggle="channel"]')) { c.classList.remove('open'); }
+            });
+            if (!wasOpen) { channel.classList.add('open'); }
+            return;
+        }
+        // 侧边栏二级导航链接
+        var subLink = e.target.closest('.sidebar-nav .sub-nav-link');
+        if (subLink) {
+            e.preventDefault();
+            var folderId = subLink.getAttribute('data-folder-id');
+            var sectionName = subLink.getAttribute('data-section-name');
+            switchFolderPanel(folderId);
+            var panel = document.querySelector('.folder-panel[data-folder-id="' + folderId + '"]');
+            if (panel && sectionName) {
+                var ts = panel.querySelector('.category-section[data-section-name="' + sectionName + '"]');
+                if (ts) window.scrollTo({ top: ts.getBoundingClientRect().top + window.pageYOffset - 80, behavior: 'smooth' });
+            }
+            document.querySelectorAll('.sidebar-nav .channel-list a').forEach(function(a) { a.classList.remove('active'); });
+            subLink.classList.add('active');
+            if (window.innerWidth <= 768) {
+                document.getElementById('sidebar').classList.remove('open');
+                document.getElementById('sidebarOverlay').classList.remove('active');
+                document.body.style.overflow = '';
+            }
+            return;
+        }
+        // 用户下拉菜单（innerHTML 替换后原绑定丢失，靠委托重新激活）
+        var userToggle = e.target.closest('#userDropdownToggle');
+        if (userToggle) {
+            e.stopPropagation();
+            var menu = document.getElementById('userDropdownMenu');
+            var arrow = document.getElementById('userDropdownArrow');
+            if (!menu || !arrow) return;
+            var isOpen = menu.style.display === 'block';
+            menu.style.display = isOpen ? 'none' : 'block';
+            arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+        }
+    });
+
+    async function refreshSidebarAndContent() {
+        try {
+            // 1. 从 API 获取最新文件夹树
+            var folderResp = await fetch('/api/folders');
+            var folders = await folderResp.json();
+            folderTreeData = folders;
+
+            // 2. 保存展开 + 高亮状态
+            var savedOpen = {};
+            document.querySelectorAll('.sidebar-nav .sidebar-channel[data-folder-id]').forEach(function(ch) {
+                var fid = ch.getAttribute('data-folder-id');
+                if (fid) savedOpen[fid] = ch.classList.contains('open');
+            });
+            var savedActiveId = null;
+            var activeCh = document.querySelector('.sidebar-nav .sidebar-channel.active[data-folder-id]');
+            if (activeCh) savedActiveId = activeCh.getAttribute('data-folder-id');
+
+            // 3. 获取最新页面 HTML
+            var resp = await fetch('/index');
+            var html = await resp.text();
+            var parser = new DOMParser();
+            var doc = parser.parseFromString(html, 'text/html');
+
+            // 替换侧边栏导航（事件由上面的委托处理，不受影响）
+            var oldNav = document.querySelector('.sidebar-nav');
+            var newNav = doc.querySelector('.sidebar-nav');
+            if (!oldNav || !newNav) throw new Error('sidebar-nav 未找到');
+            oldNav.innerHTML = newNav.innerHTML;
+
+            // 恢复展开/收起 + 高亮状态
+            document.querySelectorAll('.sidebar-nav .sidebar-channel[data-folder-id]').forEach(function(ch) {
+                var fid = ch.getAttribute('data-folder-id');
+                if (fid && savedOpen[fid] === false) ch.classList.remove('open');
+                if (fid === savedActiveId) ch.classList.add('active');
+                else if (fid) ch.classList.remove('active');
+            });
+
+            // 替换浏览模式面板
+            var oldBrowse = document.getElementById('bmBrowsePanel');
+            var newBrowse = doc.getElementById('bmBrowsePanel');
+            if (oldBrowse && newBrowse) oldBrowse.innerHTML = newBrowse.innerHTML;
+
+            // 替换管理中文件夹树
+            var oldTree = document.querySelector('.mgmt-tree-panel > div.py-1');
+            var newTree = doc.querySelector('.mgmt-tree-panel > div.py-1');
+            if (oldTree && newTree) oldTree.innerHTML = newTree.innerHTML;
+
+            // 重新给管理中文件夹树启用拖拽（draggable 属性被 innerHTML 替换丢失）
+            // 用 setTimeout(0) 确保 DOM 完全就绪后设置，兼容所有浏览器
+            setTimeout(enableMgrFolderDrag, 0);
+
+            // 4. 迷你模式 flyout 清空重建
+            var fc = document.querySelector('.mini-flyout-container');
+            if (fc) fc.innerHTML = '';
+            (function rebuildFlyouts() {
+                if (window.innerWidth <= 768) return;
+                document.querySelectorAll('.sidebar-channel.open[data-folder-id]').forEach(function(ch) {
+                    var list = ch.querySelector('.channel-list');
+                    if (!list || !list.children.length) return;
+                    var header = ch.querySelector('.channel-title');
+                    if (!header) return;
+                    var fl = document.createElement('div');
+                    fl.className = 'mini-flyout';
+                    fl.style.display = 'none';
+                    var ft = document.createElement('div');
+                    ft.className = 'flyout-title';
+                    ft.textContent = (header.querySelector('.channel-text:first-child') || {}).textContent || '';
+                    fl.appendChild(ft);
+                    var fList = document.createElement('div');
+                    fList.className = 'flyout-list';
+                    list.querySelectorAll('li > a').forEach(function(a) {
+                        var ca = a.cloneNode(true);
+                        ca.addEventListener('click', function(ev) {
+                            ev.preventDefault();
+                            var fid = a.getAttribute('data-folder-id');
+                            var sn = a.getAttribute('data-section-name');
+                            switchFolderPanel(fid);
+                            var p = document.querySelector('.folder-panel[data-folder-id="' + fid + '"]');
+                            if (p && sn) {
+                                var ts = p.querySelector('.category-section[data-section-name="' + sn + '"]');
+                                if (ts) window.scrollTo({ top: ts.getBoundingClientRect().top + window.pageYOffset - 80, behavior: 'smooth' });
+                            }
+                        });
+                        fList.appendChild(ca);
+                    });
+                    fl.appendChild(fList);
+                    document.body.appendChild(fl);
+                    ch.addEventListener('mouseenter', function() {
+                        var rect = ch.getBoundingClientRect();
+                        fl.style.display = 'block';
+                        fl.style.position = 'fixed';
+                        fl.style.left = (rect.right) + 'px';
+                        fl.style.top = (rect.top - 8) + 'px';
+                        fl.style.animation = 'flyoutFadeIn 0.2s ease';
+                    });
+                    ch.addEventListener('mouseleave', function() { fl.style.display = 'none'; });
+                });
+            })();
+        } catch(e) {
+            // 刷新失败时提示用户
+            var errEl = document.createElement('div');
+            errEl.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#dc3545;color:#fff;padding:12px 18px;border-radius:8px;font-size:13px;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.2);cursor:pointer;max-width:400px;word-break:break-all';
+            errEl.textContent = '刷新失败：' + e.message;
+            errEl.title = '点击关闭';
+            errEl.onclick = function() { this.remove(); };
+            document.body.appendChild(errEl);
+            setTimeout(function() { if (errEl.parentNode) errEl.remove(); }, 20000);
+        }
+    }
+    function scheduleRefresh() {
+        if (refreshTimer) clearTimeout(refreshTimer);
+        refreshTimer = setTimeout(refreshSidebarAndContent, 2000);
+    }
+
     function openAddFolderModal(btn) {
         document.getElementById('folderForm').reset();
         document.getElementById('folderId').value = '';
@@ -1588,7 +1845,7 @@
             var resp;
             if (id) { resp = await fetch('/api/folders/' + id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }); }
             else { resp = await fetch('/api/folders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }); }
-            if (resp.ok) { bootstrap.Modal.getInstance(document.getElementById('folderModal')).hide(); location.reload(); }
+            if (resp.ok) { bootstrap.Modal.getInstance(document.getElementById('folderModal')).hide(); scheduleRefresh(); }
             else { var r = await resp.json(); alert(r.message || '保存失败'); }
         } catch(e) { alert('保存失败：' + e.message); }
     }
@@ -1632,11 +1889,54 @@
         try {
             var resp = await fetch('/api/folders/' + deleteFolderId + '?force=true', { method: 'DELETE' });
             var data = await resp.json();
-            if (data.success) { bootstrap.Modal.getInstance(document.getElementById('deleteFolderModal')).hide(); location.reload(); }
+            if (data.success) { bootstrap.Modal.getInstance(document.getElementById('deleteFolderModal')).hide(); scheduleRefresh(); }
             else { var er = document.getElementById('deleteFolderError'); if (er) { er.textContent = data.message || '删除失败'; er.classList.remove('d-none'); } }
         } catch(e) { var er = document.getElementById('deleteFolderError'); if (er) { er.textContent = '网络错误：' + e.message; er.classList.remove('d-none'); } }
         btn.disabled = false; btn.textContent = '确认删除';
     }
+
+    // ========== 用户下拉菜单 ==========
+    (function() {
+        var toggle = document.getElementById('userDropdownToggle');
+        var menu = document.getElementById('userDropdownMenu');
+        var arrow = document.getElementById('userDropdownArrow');
+        if (!toggle || !menu) return;
+
+        toggle.addEventListener('click', function(e) {
+            e.stopPropagation();
+            var isOpen = menu.style.display === 'block';
+            if (isOpen) {
+                menu.style.display = 'none';
+                arrow.style.transform = 'rotate(0deg)';
+            } else {
+                menu.style.display = 'block';
+                arrow.style.transform = 'rotate(180deg)';
+            }
+        });
+
+        // 点击外部收起
+        document.addEventListener('click', function(e) {
+            if (!document.getElementById('userDropdown').contains(e.target)) {
+                menu.style.display = 'none';
+                arrow.style.transform = 'rotate(0deg)';
+            }
+        });
+
+        // 点击菜单项后收起
+        menu.querySelectorAll('a, button').forEach(function(el) {
+            el.addEventListener('click', function() {
+                menu.style.display = 'none';
+                arrow.style.transform = 'rotate(0deg)';
+            });
+        });
+    })();
+    window.closeUserDropdown = function() {
+        var menu = document.getElementById('userDropdownMenu');
+        var arrow = document.getElementById('userDropdownArrow');
+        if (menu) menu.style.display = 'none';
+        if (arrow) arrow.style.transform = 'rotate(0deg)';
+    };
+
     </script>
 </body>
 </html>

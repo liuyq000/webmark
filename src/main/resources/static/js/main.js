@@ -41,6 +41,10 @@ document.addEventListener('DOMContentLoaded', function () {
         if (mgmtPanel && mgmtPanel.style.display === 'block') {
             mgmtPanel.style.left = (isMini ? 60 : 220) + 'px';
         }
+        var collectPanel = document.getElementById('collectToolPanel');
+        if (collectPanel && collectPanel.style.display === 'block') {
+            collectPanel.style.left = (isMini ? 60 : 220) + 'px';
+        }
         try { localStorage.setItem(SIDEBAR_MINI_KEY, isMini ? '1' : ''); } catch (e) {}
     }
 
@@ -187,7 +191,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // 点击切换折叠
+    // 点击切换折叠（互斥：展开一个，收起其他）
     document.querySelectorAll('.channel-title[data-toggle="channel"]').forEach(function (title) {
         title.addEventListener('click', function (e) {
             var channel = this.closest('.sidebar-channel');
@@ -198,7 +202,18 @@ document.addEventListener('DOMContentLoaded', function () {
                 switchFolderPanel(folderId);
             }
 
-            channel.classList.toggle('open');
+            var wasOpen = channel.classList.contains('open');
+            // 收起所有有 data-toggle="channel" 的频道
+            document.querySelectorAll('.sidebar-channel').forEach(function (c) {
+                if (c.querySelector('[data-toggle="channel"]')) {
+                    c.classList.remove('open');
+                }
+            });
+            // 如果原来不是展开状态，则展开当前频道
+            if (!wasOpen) {
+                channel.classList.add('open');
+            }
+
             saveChannelStates();
         });
     });
@@ -240,8 +255,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 切换文件夹面板
     function switchFolderPanel(folderId) {
-        // 如果管理中面板显示，先隐藏（只有带folderId的导航才隐藏管理面板）
-        if (folderId != null && typeof hideBmMgmt === 'function') hideBmMgmt();
+        // 如果管理中面板显示，先隐藏
+        if (folderId != null) {
+            var bmBrowsePanel = document.getElementById('bmBrowsePanel');
+            var bmMgmtPanel = document.getElementById('bmMgmtPanel');
+            var userMgmtPanel = document.getElementById('userMgmtPanel');
+            var collectToolPanel = document.getElementById('collectToolPanel');
+            if (bmBrowsePanel) bmBrowsePanel.style.display = '';
+            if (bmMgmtPanel) bmMgmtPanel.style.display = 'none';
+            if (userMgmtPanel) userMgmtPanel.style.display = 'none';
+            if (collectToolPanel) collectToolPanel.style.display = 'none';
+        }
 
         // 切换面板显示
         document.querySelectorAll('.folder-panel').forEach(function (panel) {
@@ -587,4 +611,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     });
+
+    // 暴露到全局供 index.html 中的事件委托使用
+    window.switchFolderPanel = switchFolderPanel;
 });

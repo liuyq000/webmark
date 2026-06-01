@@ -6,6 +6,7 @@ import com.cloud.self.webmark.entity.User;
 import com.cloud.self.webmark.service.BookmarkService;
 import com.cloud.self.webmark.service.FolderService;
 import com.cloud.self.webmark.service.UserService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -30,6 +31,7 @@ public class IndexController {
     @GetMapping({"/", "/index"})
     public String index(@RequestParam(required = false) Long folderId,
                         @AuthenticationPrincipal UserDetails userDetails,
+                        HttpServletRequest request,
                         Model model) {
         User user = null;
         List<Folder> folderTree;
@@ -38,11 +40,14 @@ public class IndexController {
             user = userService.findByUserName(userDetails.getUsername());
             folderTree = user != null ? folderService.listTreeByUserId(user.getId()) : folderService.listPublicTree();
             model.addAttribute("user", user);
-            model.addAttribute("currentUser", user);
         } else {
             folderTree = folderService.listPublicTree();
         }
         model.addAttribute("folderTree", folderTree);
+        // 文件夹 ID → Folder 映射（用于模板中根据 ID 查找文件夹信息）
+        Map<Long, Folder> folderMap = folderTree.stream()
+                .collect(Collectors.toMap(Folder::getId, f -> f, (a, b) -> a, LinkedHashMap::new));
+        model.addAttribute("folderMap", folderMap);
 
         // 默认选中第一个顶级文件夹
         if (folderId == null && !folderTree.isEmpty()) {
@@ -73,7 +78,36 @@ public class IndexController {
         }
         model.addAttribute("allGrouped", allGrouped);
 
+        // 构建 bookmarklet 路径（用于网页收集小工具）
+        // 使用当前请求的协议+域名+端口，确保 bookmarklet 打开的地址与当前 session 的 cookie 域一致
+        String baseUrl = request.getScheme() + "://" + request.getServerName()
+                + (request.getServerPort() == 80 || request.getServerPort() == 443 ? "" : ":" + request.getServerPort()) + "/";
+        String path="javascript:(function()%7Bvar%20description;var%20desString=%22%22;var%20metas=document.getElementsByTagName('meta');for(var%20x=0,y=metas.length;x%3Cy;x++)%7Bif(metas%5Bx%5D.name.toLowerCase()==%22description%22)%7Bdescription=metas%5Bx%5D;%7D%7Dif(description)%7BdesString=%22&amp;description=%22+encodeURIComponent(description.content);%7Dvar%20win=window.open(%22"
+                + baseUrl
+                +"addbookmark?from=webtool&url=%22+encodeURIComponent(document.URL)+desString+%22&title=%22+encodeURIComponent(document.title)+%22&charset=%22+document.charset,'_blank');win.focus();%7D)();";
+        model.addAttribute("bookmarkletPath",path);
+
         return "index";
+    }
+
+    @GetMapping("/addbookmark")
+    public String addBookmark(@RequestParam(required = false) String url,
+                              @RequestParam(required = false) String title,
+                              @RequestParam(required = false) String description,
+                              @RequestParam(required = false) String charset,
+                              @AuthenticationPrincipal UserDetails userDetails,
+                              Model model) {
+        if (userDetails != null) {
+            User user = userService.findByUserName(userDetails.getUsername());
+            model.addAttribute("user", user);
+            List<Folder> folderTree = folderService.listTreeByUserId(user.getId());
+            model.addAttribute("folderTree", folderTree);
+        }
+        model.addAttribute("bmUrl", url != null ? url : "");
+        model.addAttribute("bmTitle", title != null ? title : "");
+        model.addAttribute("bmDescription", description != null ? description : "");
+        model.addAttribute("bmCharset", charset != null ? charset : "");
+        return "addbookmark";
     }
 
     private void collectGroupedBookmarks(Folder folder, List<Bookmark> allBookmarks, Map<String, List<Bookmark>> grouped) {

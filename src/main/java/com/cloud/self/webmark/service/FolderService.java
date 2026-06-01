@@ -5,11 +5,8 @@ import com.cloud.self.webmark.entity.Folder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.time.LocalDateTime;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -126,5 +123,32 @@ public class FolderService {
 
     public long count() {
         return dataStore.getFolderRepository().count();
+    }
+
+    /** 为新用户创建默认文件夹（首页、未读列表） */
+    public void createDefaultFolders(Long userId) {
+        LocalDateTime now = LocalDateTime.now();
+
+        Folder home = new Folder();
+        home.setName("首页");
+        home.setNameEn("Home");
+        home.setIcon("bi-house");
+        home.setSortOrder(0);
+        home.setUserId(userId);
+        home.setCreateTime(now);
+        home.setUpdateTime(now);
+        home.setDeleted(0);
+        dataStore.getFolderRepository().save(home);
+
+        Folder unread = new Folder();
+        unread.setName("未读列表");
+        unread.setNameEn("Unread");
+        unread.setIcon("bi-bookmark");
+        unread.setSortOrder(999);
+        unread.setUserId(userId);
+        unread.setCreateTime(now);
+        unread.setUpdateTime(now);
+        unread.setDeleted(0);
+        dataStore.getFolderRepository().save(unread);
     }
 }

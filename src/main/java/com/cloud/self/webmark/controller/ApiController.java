@@ -151,7 +151,15 @@ public class ApiController {
 
     @PutMapping("/folders/{id}")
     public ResponseEntity<Folder> updateFolder(@PathVariable Long id, @RequestBody Folder folder) {
+        // 加载现有实体，保留前端没传的关键字段（userId、createTime、deleted）
+        Folder existing = folderService.getById(id);
+        if (existing == null) {
+            return ResponseEntity.notFound().build();
+        }
         folder.setId(id);
+        if (folder.getUserId() == null) folder.setUserId(existing.getUserId());
+        if (folder.getDeleted() == null) folder.setDeleted(existing.getDeleted());
+        folder.setCreateTime(existing.getCreateTime());
         folderService.updateById(folder);
         return ResponseEntity.ok(folder);
     }

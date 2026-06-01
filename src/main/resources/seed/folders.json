@@ -43,7 +43,7 @@
   {"id": 38, "parentId": 4, "name": "新媒工具", "nameEn": "Media Tools",    "sortOrder": 6, "deleted": 0},
   {"id": 39, "parentId": 4, "name": "网站收录", "nameEn": "Submission",     "sortOrder": 7, "deleted": 0},
 
-  {"id": 40, "parentId": null, "name": "首页",   "nameEn": "Home",        "icon": "bi-house",    "sortOrder": 0, "deleted": 0},
+  {"id": 40, "parentId": null, "name": "首页",   "nameEn": "Home",        "icon": "bi-house",    "sortOrder": 0, "userId": 1, "deleted": 0},
 
   {"id": 41, "parentId": null, "name": "未读列表", "nameEn": "Unread",      "icon": "bi-bookmark", "sortOrder": 6, "userId": 1, "deleted": 0}
 ]

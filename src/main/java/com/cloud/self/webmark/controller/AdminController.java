@@ -20,7 +20,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -45,38 +44,16 @@ public class AdminController {
     private final FolderService folderService;
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
-    // ========== 页面路由统一重定向到 /index（图标管理除外） ==========
+    // ========== 页面路由统一重定向到 /index ==========
 
     @GetMapping({"", "/index", "/bookmark/edit/**", "/folder/list",
             "/user/list", "/favorites/list", "/urlLibrary/list", "/config",
-            "/tool/collect", "/tool/import", "/tool/export"})
+            "/tool/collect", "/tool/import", "/tool/export", "/icon/list"})
     public String redirectToIndex() {
         return "redirect:/index";
     }
 
-    @GetMapping("/icon/list")
-    public String iconList() {
-        return "admin/icon/list";
-    }
-
     // ========== 保留的 API 功能 ==========
-
-    /** bookmarklet 打开的新建书签页面（独立窗口） */
-    @GetMapping("/addbookmark")
-    public String bookmarkCreate(@RequestParam(required = false) Long folderId,
-                                 @RequestParam(required = false) String url,
-                                 @RequestParam(required = false) String title,
-                                 @RequestParam(required = false) String description,
-                                 @AuthenticationPrincipal UserDetails userDetails, Model model) {
-        User user = userDetails != null ? userService.findByUserName(userDetails.getUsername()) : null;
-        model.addAttribute("folderTree", user != null ? folderService.listTreeByUserId(user.getId()) : folderService.listPublicTree());
-        model.addAttribute("bookmark", null);
-        model.addAttribute("selectedFolderId", folderId != null ? folderId : 40);
-        model.addAttribute("prefillUrl", url);
-        model.addAttribute("prefillTitle", title);
-        model.addAttribute("prefillDescription", description);
-        return "admin/bookmark/editbookmark";
-    }
 
     /** 导入书签 */
     @PostMapping("/tool/import")
@@ -388,6 +365,8 @@ public class AdminController {
                 u.setRole(role);
                 u.setIntroduction(introduction);
                 userService.save(u);
+                // 为新用户创建默认文件夹
+                folderService.createDefaultFolders(u.getId());
             } else {
                 // 编辑
                 User u = userService.getById(Long.valueOf(idStr));
