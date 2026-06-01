@@ -40,9 +40,6 @@ public class AdminController {
     private final BookmarkService bookmarkService;
     private final FolderService folderService;
     private final UserService userService;
-    private final FavoritesService favoritesService;
-    private final UrlLibraryService urlLibraryService;
-
     // ========== 页面路由统一重定向到 /index（图标管理除外） ==========
 
     @GetMapping({"", "/index", "/bookmark/edit/**", "/folder/list",
@@ -50,15 +47,6 @@ public class AdminController {
             "/tool/collect", "/tool/import", "/tool/export"})
     public String redirectToIndex() {
         return "redirect:/index";
-    }
-
-    /** 书签管理页面（保留完整左树右表） */
-    @GetMapping("/bookmark/list")
-    public String bookmarkList(@AuthenticationPrincipal UserDetails userDetails, Model model) {
-        User user = userDetails != null ? userService.findByUserName(userDetails.getUsername()) : null;
-        model.addAttribute("folderTree", user != null ? folderService.listTreeByUserId(user.getId()) : folderService.listPublicTree());
-        model.addAttribute("user", user);
-        return "admin/bookmark/list";
     }
 
     @GetMapping("/icon/list")

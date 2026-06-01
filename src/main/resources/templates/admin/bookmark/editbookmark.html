@@ -17,7 +17,7 @@
         <main class="content flex-grow-1 p-4">
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a th:href="@{/admin/bookmark/list}">书签管理</a></li>
+                    <li class="breadcrumb-item"><a th:href="@{/index}">书签管理</a></li>
                     <li class="breadcrumb-item active" th:text="${bookmark != null ? '编辑书签' : '新建书签'}">新建书签</li>
                 </ol>
             </nav>
@@ -27,7 +27,7 @@
                     <i th:classappend="${bookmark != null ? 'bi bi-pencil-square' : 'bi bi-plus-circle'}"></i>
                     <span th:text="${bookmark != null ? '编辑书签' : '新建书签'}">新建书签</span>
                 </h5>
-                <a th:href="@{/admin/bookmark/list}" class="btn btn-outline-secondary btn-sm">
+                <a th:href="@{/index}" class="btn btn-outline-secondary btn-sm">
                     <i class="bi bi-arrow-left"></i> 返回列表
                 </a>
             </div>
@@ -99,7 +99,7 @@
                             <button type="button" class="btn btn-primary" onclick="submitBookmark()">
                                 <i class="bi bi-check-lg"></i> 保存
                             </button>
-                            <a th:href="@{/admin/bookmark/list}" class="btn btn-outline-secondary">取消</a>
+                            <a th:href="@{/index}" class="btn btn-outline-secondary">取消</a>
                         </div>
                     </form>
                 </div>
@@ -266,7 +266,7 @@
                     });
                 }
                 if (resp.ok) {
-                    window.location.href = '/admin/bookmark/list';
+                    window.location.href = '/index';
                 } else {
                     const err = await resp.json().catch(() => ({}));
                     alert('保存失败：' + (err.message || '服务器错误，请稍后重试'));

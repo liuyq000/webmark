@@ -33,8 +33,6 @@ public class DataStore {
     private JsonFileRepository<User> userRepository;
     private JsonFileRepository<Bookmark> bookmarkRepository;
     private JsonFileRepository<Folder> folderRepository;
-    private JsonFileRepository<Favorites> favoritesRepository;
-    private JsonFileRepository<UrlLibrary> urlLibraryRepository;
     private JsonFileRepository<Config> configRepository;
 
     public DataStore(@Value("${webmark.data.dir:./data}") String dataDir,
@@ -53,8 +51,6 @@ public class DataStore {
         userRepository = new JsonFileRepository<>(new File(dir, "users.json"), User.class);
         bookmarkRepository = new JsonFileRepository<>(new File(dir, "bookmarks.json"), Bookmark.class);
         folderRepository = new JsonFileRepository<>(new File(dir, "folders.json"), Folder.class);
-        favoritesRepository = new JsonFileRepository<>(new File(dir, "favorites.json"), Favorites.class);
-        urlLibraryRepository = new JsonFileRepository<>(new File(dir, "url_library.json"), UrlLibrary.class);
         configRepository = new JsonFileRepository<>(new File(dir, "config.json"), Config.class);
 
         // 初始化种子数据（仅在首次运行时）
@@ -117,7 +113,5 @@ public class DataStore {
     public JsonFileRepository<User> getUserRepository() { return userRepository; }
     public JsonFileRepository<Bookmark> getBookmarkRepository() { return bookmarkRepository; }
     public JsonFileRepository<Folder> getFolderRepository() { return folderRepository; }
-    public JsonFileRepository<Favorites> getFavoritesRepository() { return favoritesRepository; }
-    public JsonFileRepository<UrlLibrary> getUrlLibraryRepository() { return urlLibraryRepository; }
     public JsonFileRepository<Config> getConfigRepository() { return configRepository; }
 }
