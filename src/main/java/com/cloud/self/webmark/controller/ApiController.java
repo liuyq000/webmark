@@ -5,6 +5,7 @@ import com.cloud.self.webmark.entity.Folder;
 import com.cloud.self.webmark.entity.User;
 import com.cloud.self.webmark.security.JwtUtil;
 import com.cloud.self.webmark.service.BookmarkService;
+import com.cloud.self.webmark.service.FaviconService;
 import com.cloud.self.webmark.service.FolderService;
 import com.cloud.self.webmark.service.UserService;
 import com.cloud.self.webmark.store.PageResult;
@@ -28,6 +29,7 @@ public class ApiController {
     private final BookmarkService bookmarkService;
     private final FolderService folderService;
     private final UserService userService;
+    private final FaviconService faviconService;
     private final JwtUtil jwtUtil;
     private final PasswordEncoder passwordEncoder;
 
@@ -114,6 +116,21 @@ public class ApiController {
         if (bookmark.getCreateTime() == null) bookmark.setCreateTime(LocalDateTime.now());
         bookmark.setUpdateTime(LocalDateTime.now());
         bookmarkService.save(bookmark);
+        // 异步抓取 favicon
+        final Long savedId = bookmark.getId();
+        final String savedUrl = bookmark.getUrl();
+        new Thread(() -> {
+            try {
+                String logoUrl = faviconService.fetchAndSave(savedUrl);
+                if (logoUrl != null) {
+                    Bookmark b = bookmarkService.getById(savedId);
+                    if (b != null && b.getLogoUrl() == null) {
+                        b.setLogoUrl(logoUrl);
+                        bookmarkService.updateById(b);
+                    }
+                }
+            } catch (Exception ignored) {}
+        }).start();
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("success", true);
         result.put("id", bookmark.getId());

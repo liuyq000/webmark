@@ -1438,3 +1438,11 @@ a {
 #userDropdownMenu ul li button:hover i {
     color: var(--sidebar-active);
 }
+
+/* 搜索高亮 */
+mark.search-highlight {
+    background: #fff3cd;
+    color: #856404;
+    padding: 0 2px;
+    border-radius: 2px;
+}

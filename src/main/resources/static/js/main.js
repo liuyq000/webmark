@@ -368,8 +368,8 @@ document.addEventListener('DOMContentLoaded', function () {
                             }
                             html += '<a class="search-result-item" href="' + item.url + '" target="_blank" rel="noopener">' +
                                 '<div class="sri-icon">' + logoHtml + '</div>' +
-                                '<div class="sri-info"><div class="sri-name">' + escapeHtml(item.title) + '</div>' +
-                                '<div class="sri-desc">' + escapeHtml(item.description || '') + '</div></div></a>';
+                                '<div class="sri-info"><div class="sri-name">' + highlightText(item.title, key) + '</div>' +
+                                '<div class="sri-desc">' + highlightText(item.description || '', key) + '</div></div></a>';
                         });
                         html += '</div>';
                         searchOverlayBody.innerHTML = html;
@@ -385,6 +385,14 @@ document.addEventListener('DOMContentLoaded', function () {
         var div = document.createElement('div');
         div.textContent = str;
         return div.innerHTML;
+    }
+
+    function highlightText(text, keyword) {
+        if (!keyword || !text) return escapeHtml(text || '');
+        var escaped = escapeHtml(text);
+        var escapedKw = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        var regex = new RegExp('(' + escapedKw + ')', 'gi');
+        return escaped.replace(regex, '<mark class="search-highlight">$1</mark>');
     }
 
     // =================== 新建书签 Modal ===================

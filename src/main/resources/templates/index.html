@@ -75,7 +75,6 @@
             </div>
         </div>
     </header>
-
     <div class="layout-wrapper">
         <!-- 左侧侧边栏 - 从数据库动态渲染 -->
         <aside class="sidebar" id="sidebar">
@@ -136,335 +135,26 @@
                 </a>
             </div>
         </aside>
-
         <!-- 右侧主内容区 -->
         <main class="main-content">
             <div class="content-wrapper">
-            <!-- ========== 浏览模式 ========== -->
-            <div id="bmBrowsePanel">
-                <!-- 每个顶级文件夹一个内容面板 -->
-                <div th:each="entry : ${allGrouped}" class="folder-panel"
-                     th:attr="data-folder-id=${entry.key}"
-                     th:styleappend="${entry.key != folderId} ? 'display:none'">
-                    <!-- 当前栏目标题 -->
-                    <div class="current-folder-header">
-                        <h2 class="current-folder-title">
-                            <i class="bi" th:classappend="${folderMap[entry.key] != null && folderMap[entry.key].icon != null ? folderMap[entry.key].icon : 'bi-folder'}"></i>
-                            <span th:text="${folderMap[entry.key] != null ? folderMap[entry.key].name : '栏目'}">栏目名</span>
-                        </h2>
-                    </div>
 
-                    <!-- 书签卡片分组 -->
-                    <div th:each="sub : ${entry.value}" class="category-section" th:attr="data-section-name=${sub.key}">
-                        <div class="section-header">
-                            <h3 class="section-title" th:text="${sub.key}">分类名称</h3>
-                        </div>
-                        <div class="resource-grid">
-                            <a th:each="bookmark : ${sub.value}" th:href="${bookmark.url}" target="_blank" rel="noopener" class="resource-card" th:attr="data-bookmark-id=${bookmark.id}">
-                                <div class="card-icon">
-                                    <img th:if="${bookmark.logoUrl != null and !bookmark.logoUrl.isEmpty()}"
-                                         th:src="${bookmark.logoUrl}" th:alt="${bookmark.title}"
-                                         onerror="this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='flex';">
-                                    <div class="card-icon-fallback" th:styleappend="${bookmark.logoUrl != null and !bookmark.logoUrl.isEmpty()} ? 'display:none'"
-                                         th:text="${#strings.substring(bookmark.title, 0, 1)}">W</div>
-                                </div>
-                                <div class="card-info">
-                                    <div class="card-name" th:text="${bookmark.title}">资源名称</div>
-                                    <div class="card-desc" th:text="${bookmark.description}">资源描述</div>
-                                </div>
-                            </a>
-                        </div>
-                    </div>
-                </div>
+                <!-- ========== 浏览模式 ========== -->
+                <div th:replace="fragments/browse-panel :: browsePanel"></div>
 
-                <!-- 空状态 -->
-                <div th:if="${allGrouped == null or allGrouped.isEmpty()}" class="empty-state">
-                    <i class="bi bi-inbox"></i>
-                    <p>暂无资源数据</p>
-                </div>
+                <!-- ========== 书签管理 ========== -->
+                <div th:replace="fragments/mgmt-panel :: mgmtPanel"></div>
 
-                <!-- 页脚 -->
-                <footer class="site-footer" style="display:none">
-                    <p>Copyright &copy; 2024 本地书签 | ICP备XXXXXXXX号</p>
-                    <div class="footer-links">
-                        <a href="#">关于我们</a>
-                        <a href="#">意见反馈</a>
-                        <a href="#">友情链接</a>
-                    </div>
-                </footer>
-                <!-- 内容为空时显示引导 -->
-                <div th:if="${#maps.isEmpty(allGrouped)}" class="text-center py-5" style="color:#999">
-                    <div id="bmBrowsePanelEmpty" class="py-5">
-                        <i class="bi bi-bookmark-star" style="font-size:64px;display:block;margin-bottom:16px;color:#ddd"></i>
-                        <h5 style="font-weight:600;color:#666">欢迎来到本地书签</h5>
-                        <p class="mb-1" style="font-size:14px">收录你喜爱的网站，分类整理，随时查阅</p>
-                        <p class="mt-3" style="font-size:13px">
-                            <span sec:authorize="!isAuthenticated()">
-                                <i class="bi bi-person-circle me-1"></i>
-                                <a th:href="@{/login}" class="text-decoration-none">登录</a>
-                                <span class="mx-2">|</span>
-                                <a th:href="@{/register}" class="text-decoration-none">注册</a>
-                            </span>
-                            <span sec:authorize="isAuthenticated()">
-                                <i class="bi bi-plus-circle me-1"></i>
-                                <a href="javascript:;" onclick="openBookmarkModal()" class="text-decoration-none">新建书签</a>
-                            </span>
-                        </p>
-                    </div>
-                </div>
-            </div>
+                <!-- ========== 用户管理 ========== -->
+                <div th:replace="fragments/user-panel :: userPanel"></div>
 
-            <!-- ========== 管理面板（左树右表） ========== -->
-            <div id="bmMgmtPanel" style="display:none; position:fixed; top:56px; left:220px; right:0; bottom:0; background:#f5f6fa; z-index:900; padding:20px; overflow:auto;">
-                <h5 class="mb-3"><i class="bi bi-bookmarks"></i> 书签管理</h5>
-                <div class="d-flex shadow-sm" style="border-radius:8px; overflow:hidden; max-width:100%;">
-                    <!-- 左侧文件夹树 -->
-                    <div class="mgmt-tree-panel">
-                        <div class="tree-header d-flex justify-content-between align-items-center pe-2">
-                            <span><i class="bi bi-folder2-open"></i> 文件夹</span>
-                            <button class="btn btn-sm btn-link text-decoration-none p-0 text-primary" onclick="openAddFolderModal()" title="新增顶级文件夹">
-                                <i class="bi bi-plus-circle fs-6"></i>
-                            </button>
-                        </div>
-                        <div class="py-1">
-                            <!-- 全部书签 -->
-                            <div class="tree-item active" data-folder-id="" onclick="selectFolder(this)">
-                                <span style="display:inline-block;width:16px"></span>
-                                <i class="bi bi-layers folder-icon"></i> 全部书签
-                            </div>
-                            <!-- 一级文件夹 -->
-                            <th:block th:each="folder : ${folderTree}">
-                                <div class="tree-item folder-parent d-flex justify-content-between align-items-center" th:attr="data-folder-id=${folder.id}" onclick="selectFolder(this)">
-                                    <div class="text-truncate flex-grow-1">
-                                        <span class="toggle-icon" th:if="${folder.children != null and !folder.children.isEmpty()}" onclick="event.stopPropagation(); toggleTree(this)">
-                                            <i class="bi bi-chevron-right"></i>
-                                        </span>
-                                        <span class="toggle-icon" th:if="${folder.children == null or folder.children.isEmpty()}">&nbsp;</span>
-                                        <i class="bi bi-folder-fill text-warning folder-icon"></i>
-                                        <span th:text="${folder.name}">文件夹</span>
-                                    </div>
-                                    <div class="tree-item-actions">
-                                        <i class="bi bi-pencil" onclick="event.stopPropagation(); openEditFolderModal(this)" th:attr="data-id=${folder.id},data-name=${folder.name},data-name-en=${folder.nameEn},data-icon=${folder.icon},data-sort=${folder.sortOrder},data-parent-id=${folder.parentId}" title="编辑"></i>
-                                        <i class="bi bi-plus-circle" onclick="event.stopPropagation(); openAddFolderModal(this)" th:attr="data-parent-folder-id=${folder.id}" title="新增子文件夹"></i>
-                                        <i class="bi bi-trash" onclick="event.stopPropagation(); openDeleteFolderModal(this)" th:attr="data-folder-id=${folder.id}" title="删除"></i>
-                                    </div>
-                                </div>
-                                <!-- 二级文件夹 -->
-                                <div class="tree-children" th:if="${folder.children != null}">
-                                    <th:block th:each="child : ${folder.children}">
-                                        <div class="tree-item d-flex justify-content-between align-items-center" style="padding-left:36px" th:attr="data-folder-id=${child.id}" onclick="selectFolder(this)">
-                                            <div class="text-truncate flex-grow-1">
-                                                <span class="toggle-icon" th:if="${child.children != null and !child.children.isEmpty()}" onclick="event.stopPropagation(); toggleTree(this)">
-                                                    <i class="bi bi-chevron-right"></i>
-                                                </span>
-                                                <span class="toggle-icon" th:if="${child.children == null or child.children.isEmpty()}">&nbsp;</span>
-                                                <i class="bi bi-folder2 text-secondary folder-icon"></i>
-                                                <span th:text="${child.name}">子文件夹</span>
-                                            </div>
-                                            <div class="tree-item-actions">
-                                                <i class="bi bi-pencil" onclick="event.stopPropagation(); openEditFolderModal(this)" th:attr="data-id=${child.id},data-name=${child.name},data-name-en=${child.nameEn},data-icon=${child.icon},data-sort=${child.sortOrder},data-parent-id=${child.parentId}" title="编辑"></i>
-                                                <i class="bi bi-plus-circle" onclick="event.stopPropagation(); openAddFolderModal(this)" th:attr="data-parent-folder-id=${child.id}" title="新增子文件夹"></i>
-                                                <i class="bi bi-trash" onclick="event.stopPropagation(); openDeleteFolderModal(this)" th:attr="data-folder-id=${child.id}" title="删除"></i>
-                                            </div>
-                                        </div>
-                                        <!-- 三级文件夹 -->
-                                        <div class="tree-children" th:if="${child.children != null}">
-                                            <div class="tree-item d-flex justify-content-between align-items-center" style="padding-left:56px" th:each="grandchild : ${child.children}" th:attr="data-folder-id=${grandchild.id}" onclick="selectFolder(this)">
-                                                <div class="text-truncate flex-grow-1">
-                                                    <span class="toggle-icon">&nbsp;</span>
-                                                    <i class="bi bi-folder2-open text-muted folder-icon"></i>
-                                                    <span th:text="${grandchild.name}">三级</span>
-                                                </div>
-                                                <div class="tree-item-actions">
-                                                    <i class="bi bi-pencil" onclick="event.stopPropagation(); openEditFolderModal(this)" th:attr="data-id=${grandchild.id},data-name=${grandchild.name},data-name-en=${grandchild.nameEn},data-icon=${grandchild.icon},data-sort=${grandchild.sortOrder},data-parent-id=${grandchild.parentId}" title="编辑"></i>
-                                                    <i class="bi bi-plus-circle" onclick="event.stopPropagation(); openAddFolderModal(this)" th:attr="data-parent-folder-id=${grandchild.id}" title="新增子文件夹"></i>
-                                                    <i class="bi bi-trash" onclick="event.stopPropagation(); openDeleteFolderModal(this)" th:attr="data-folder-id=${grandchild.id}" title="删除"></i>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </th:block>
-                                </div>
-                            </th:block>
-                        </div>
-                    </div>
-
-                    <!-- 右侧书签表 -->
-                    <div class="mgmt-table-panel">
-                        <!-- 搜索栏 -->
-                        <div class="p-2 border-bottom bg-light">
-                            <form class="row g-2 align-items-end" onsubmit="searchBookmarks(event)">
-                                <div class="col-md-4">
-                                    <input type="text" id="searchKeyword" class="form-control form-control-sm" placeholder="搜索标题/URL">
-                                </div>
-                                <div class="col-md-2">
-                                    <select id="searchPublicType" class="form-select form-select-sm">
-                                        <option value="">全部类型</option>
-                                        <option value="1">公开</option>
-                                        <option value="0">私密</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-3">
-                                    <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i> 搜索</button>
-                                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetSearch()">重置</button>
-                                </div>
-                                <div class="col-md-3 text-end">
-                                    <span class="text-muted small ms-2" id="bookmarkCount">共 0 条</span>
-                                </div>
-                            </form>
-                            <div class="text-end mt-2 d-flex justify-content-end gap-2">
-                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="openImportModal()"><i class="bi bi-upload"></i> 导入收藏夹</button>
-                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="openExportModal()"><i class="bi bi-download"></i> 导出收藏夹</button>
-                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="openIconModal()"><i class="bi bi-emoji-smile"></i> 图标管理</button>
-                                <button type="button" class="btn btn-success btn-sm" onclick="openCreateBookmarkModal()"><i class="bi bi-plus-lg"></i> 新建书签</button>
-                            </div>
-                        </div>
-                        <!-- 表格 -->
-                        <table class="table table-hover" id="bookmarkTable">
-                            <thead class="table-light">
-                                <tr>
-                                    <th style="width:30px"></th>
-                                    <th style="width:50px">ID</th>
-                                    <th>标题</th>
-                                    <th>URL</th>
-                                    <th style="width:70px">类型</th>
-                                    <th style="width:130px">创建时间</th>
-                                    <th style="width:110px">操作</th>
-                                </tr>
-                            </thead>
-                            <tbody id="bookmarkTableBody">
-                                <tr>
-                                    <td colspan="7" class="text-center text-muted py-4">加载中...</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                        <!-- 分页 -->
-                        <div class="d-flex justify-content-between align-items-center p-2 border-top" id="paginationArea">
-                            <nav>
-                                <ul class="pagination pagination-sm mb-0" id="paginationList"></ul>
-                            </nav>
-                            <div>
-                                <select class="form-select form-select-sm" style="width:auto;min-width:90px" id="pageSizeSelect" onchange="changePageSize(this.value)">
-                                    <option value="10">10条/页</option>
-                                    <option value="20">20条/页</option>
-                                    <option value="50">50条/页</option>
-                                    <option value="100">100条/页</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 用户管理面板 -->
-            <div id="userMgmtPanel" style="display:none; position:fixed; top:56px; left:220px; right:0; bottom:0; background:#f5f6fa; z-index:900; padding:20px; overflow:auto;">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="mb-0"><i class="bi bi-people-fill me-2"></i>用户管理</h5>
-                    <button class="btn btn-primary btn-sm" onclick="openUserModal()"><i class="bi bi-person-plus me-1"></i>新建用户</button>
-                </div>
-                <div class="card shadow-sm border-0">
-                    <div class="card-header bg-white d-flex justify-content-between align-items-center py-2 px-3">
-                        <span class="small text-muted" id="userTotalText">共 0 个用户</span>
-                        <div class="input-group input-group-sm" style="max-width:220px">
-                            <span class="input-group-text"><i class="bi bi-search"></i></span>
-                            <input type="text" class="form-control" id="userSearchInput" placeholder="搜索用户名/邮箱..." oninput="searchUsers()">
-                        </div>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-hover mb-0">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th style="width:50px">ID</th>
-                                        <th>用户名</th>
-                                        <th>邮箱</th>
-                                        <th style="width:80px">角色</th>
-                                        <th style="width:160px">创建时间</th>
-                                        <th style="width:130px">操作</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="userTableBody">
-                                    <tr><td colspan="6" class="text-center text-muted py-4">加载中...</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    <div class="card-footer bg-white d-flex justify-content-between align-items-center py-2">
-                        <span class="small text-muted" id="userPageInfo">第 0-0 条，共 0 条</span>
-                        <nav><ul class="pagination pagination-sm mb-0" id="userPagination"></ul></nav>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 用户新建/编辑弹窗 -->
-            <div class="modal fade" id="userModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
-                <div class="modal-header"><h5 class="modal-title" id="userModalTitle"><i class="bi bi-person-plus me-2"></i>新建用户</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-                <div class="modal-body">
-                    <input type="hidden" id="userModalId">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label small">用户名 <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control form-control-sm" id="userModalUserName" required minlength="3" maxlength="50">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label small">邮箱</label>
-                            <input type="email" class="form-control form-control-sm" id="userModalEmail">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label small">密码 <span class="text-danger">*</span></label>
-                            <input type="password" class="form-control form-control-sm" id="userModalPassword" minlength="6" placeholder="新建时必填">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label small">角色</label>
-                            <select class="form-select form-select-sm" id="userModalRole">
-                                <option value="ROLE_USER">普通用户</option>
-                                <option value="ROLE_ADMIN">管理员</option>
-                            </select>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label small">个人简介</label>
-                            <textarea class="form-control form-control-sm" id="userModalIntro" rows="2" placeholder="可选"></textarea>
-                        </div>
-                        <div class="col-12"><span id="userModalError" class="small text-danger"></span></div>
-                    </div>
-                </div>
-                <div class="modal-footer"><button class="btn btn-sm btn-light" data-bs-dismiss="modal">取消</button><button class="btn btn-sm btn-primary" onclick="saveUser()"><i class="bi bi-check-lg me-1"></i>保存</button></div>
-            </div></div></div>
+                <!-- ========== 用户弹窗 ========== -->
+                <div th:replace="fragments/user-modals :: userModals"></div>
 
             </div>
 
-            <!-- 网页收集工具面板 -->
-            <div id="collectToolPanel" style="display:none; position:fixed; top:56px; left:220px; right:0; bottom:0; background:#f5f6fa; z-index:900; padding:24px; overflow:auto;">
-                <h5 class="mb-3"><i class="bi bi-globe me-2"></i>网页收集工具</h5>
-                <div style="max-width:650px">
-                    <div class="card border-0 shadow-sm mb-3">
-                        <div class="card-body">
-                            <h6 class="card-title"><i class="bi bi-puzzle me-1"></i> 1、使用浏览器扩展收藏网页</h6>
-                            <p class="text-muted mb-2">支持：Chrome / 360极速 / QQ / UC / 百度浏览器</p>
-                            <a target="_blank" href="https://chrome.google.com/webstore/detail/%E4%BA%91%E6%94%B6%E8%97%8F/gnidnmkcdgfiemdaeijncglpgldflhbb?hl=zh-CN" class="btn btn-primary btn-sm">
-                                <i class="bi bi-download me-1"></i>下载扩展
-                            </a>
-                        </div>
-                    </div>
-                    <div class="card border-0 shadow-sm mb-3">
-                        <div class="card-body">
-                            <h6 class="card-title"><i class="bi bi-bookmark-plus me-1"></i> 2、网页收集小工具</h6>
-                            <p class="text-muted mb-2">将该按钮拖动至浏览器书签栏，在任意网页点击即可收藏</p>
-                            <a th:attr="href=${bookmarkletPath}" onclick="alert('请把这个按钮拖到您的浏览器书签栏'); return false;" class="btn btn-success btn-sm">
-                                <i class="bi bi-bookmark-star me-1"></i>本地书签
-                            </a>
-                        </div>
-                    </div>
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body text-center">
-                            <h6 class="card-title mb-3">使用说明</h6>
-                            <div class="text-start text-muted small">
-                                <p><strong>浏览器扩展方式：</strong>安装扩展后，在任意网页点击扩展图标即可快速收藏当前页面到本地书签。</p>
-                                <p><strong>书签栏小工具方式：</strong>将上方「本地书签」按钮直接拖拽到浏览器书签栏。之后在任意网页点击该书签，即可一键收藏当前页面。</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <!-- ========== 网页收集工具 ========== -->
+            <div th:replace="fragments/collect-tool :: collectTool"></div>
 
         </main>
     </div>
@@ -490,322 +180,14 @@
         </div>
     </div>
 
-    <!-- 管理面板书签模态框（与浏览模式共用的是一个，但管理模式用自有JS) -->
-    <div class="modal fade" id="mgrBookmarkModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="mgrBookmarkModalTitle">新建书签</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="mgrBookmarkForm" onsubmit="return false">
-                        <input type="hidden" id="mgrModalBookmarkId">
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label for="mgrModalBookmarkTitle" class="form-label">标题 <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="mgrModalBookmarkTitle" required placeholder="请输入书签标题">
-                            </div>
-                            <div class="col-md-6">
-                                <label for="mgrModalBookmarkUrl" class="form-label">URL <span class="text-danger">*</span></label>
-                                <input type="url" class="form-control" id="mgrModalBookmarkUrl" required placeholder="https://example.com">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">所属文件夹</label>
-                                <div class="tree-select">
-                                    <div class="tree-select-input form-control d-flex align-items-center justify-content-between" onclick="toggleMgrBookmarkTreePanel()">
-                                        <span id="mgrModalBookmarkFolderLabel" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">请选择文件夹</span>
-                                        <i class="bi bi-chevron-down" style="font-size:12px;color:#aaa"></i>
-                                    </div>
-                                    <input type="hidden" id="mgrModalBookmarkFolderId" value="">
-                                    <div class="tree-select-dropdown" id="mgrBookmarkTreeSelectDropdown"></div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="mgrModalBookmarkLogoUrl" class="form-label">Logo URL</label>
-                                <input type="text" class="form-control" id="mgrModalBookmarkLogoUrl" placeholder="网站图标地址（可选）">
-                            </div>
-                            <div class="col-12">
-                                <label for="mgrModalBookmarkDescription" class="form-label">描述</label>
-                                <textarea class="form-control" id="mgrModalBookmarkDescription" rows="2" placeholder="书签描述（可选）"></textarea>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="mgrModalBookmarkTags" class="form-label">标签</label>
-                                <input type="text" class="form-control" id="mgrModalBookmarkTags" placeholder="多个标签用逗号分隔">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">类型</label>
-                                <div>
-                                    <div class="form-check form-check-inline">
-                                        <input class="form-check-input" type="radio" name="mgrModalBookmarkPublicType" id="mgrPublicType1" value="1" checked>
-                                        <label class="form-check-label" for="mgrPublicType1">公开</label>
-                                    </div>
-                                    <div class="form-check form-check-inline">
-                                        <input class="form-check-input" type="radio" name="mgrModalBookmarkPublicType" id="mgrPublicType0" value="0">
-                                        <label class="form-check-label" for="mgrPublicType0">私密</label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary btn-sm" onclick="submitMgrBookmarkModal()">保存</button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- ========== 书签弹窗组 ========== -->
+    <div th:replace="fragments/bookmark-modals :: bookmarkModals"></div>
 
-    <!-- 删除书签确认模态框 -->
-    <div class="modal fade" id="deleteBookmarkModal" tabindex="-1">
-        <div class="modal-dialog modal-sm">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">确认删除</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <p>确定要删除该书签吗？此操作不可恢复。</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-danger btn-sm" onclick="confirmDeleteBookmark()">删除</button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- ========== 文件夹弹窗组 ========== -->
+    <div th:replace="fragments/folder-modals :: folderModals"></div>
 
-    <!-- 新增/编辑文件夹模态框 -->
-    <div class="modal fade" id="folderModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="folderModalTitle">新增文件夹</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="folderForm" onsubmit="return false">
-                        <input type="hidden" id="folderId">
-                        <div class="mb-3">
-                            <label class="form-label">父级文件夹</label>
-                            <div class="tree-select">
-                                <div class="tree-select-input form-control d-flex align-items-center justify-content-between" onclick="toggleMgrTreePanel()">
-                                    <span id="folderParentLabel" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">无（顶级文件夹）</span>
-                                    <i class="bi bi-chevron-down" style="font-size:12px;color:#aaa"></i>
-                                </div>
-                                <input type="hidden" id="folderParentId" value="">
-                                <div class="tree-select-dropdown" id="mgrTreeSelectDropdown"></div>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label for="folderName" class="form-label">名称 <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="folderName" required placeholder="请输入文件夹名称">
-                        </div>
-                        <div class="mb-3">
-                            <label for="folderNameEn" class="form-label">英文名</label>
-                            <input type="text" class="form-control" id="folderNameEn" placeholder="请输入英文名">
-                        </div>
-                        <div class="mb-3">
-                            <label for="folderIcon" class="form-label">图标</label>
-                            <input type="text" class="form-control" id="folderIcon" placeholder="如：bi-folder, bi-code-slash">
-                            <div class="form-text">Bootstrap Icons 图标类名</div>
-                        </div>
-                        <div class="mb-3">
-                            <label for="folderSortOrder" class="form-label">排序</label>
-                            <input type="number" class="form-control" id="folderSortOrder" value="0" min="0">
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary btn-sm" onclick="saveMgrFolder()">保存</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 删除文件夹确认模态框 -->
-    <div class="modal fade" id="deleteFolderModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="deleteFolderTitle">确认删除</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <p id="deleteFolderMessage">确定要删除该文件夹吗？</p>
-                    <div id="deleteFolderWarning" class="alert alert-warning d-none mt-2 mb-0"></div>
-                    <div id="deleteFolderError" class="alert alert-danger d-none mt-2 mb-0"></div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-danger btn-sm" id="deleteFolderBtn" onclick="confirmDeleteFolder()">删除</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 新建书签模态框 -->
-    <div class="modal fade" id="bookmarkModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="bookmarkModalTitle">新建书签</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="bookmarkModalForm" onsubmit="return false">
-                        <input type="hidden" id="modalBookmarkId">
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label for="modalBookmarkTitle" class="form-label">标题 <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="modalBookmarkTitle" required placeholder="请输入书签标题">
-                            </div>
-                            <div class="col-md-6">
-                                <label for="modalBookmarkUrl" class="form-label">URL <span class="text-danger">*</span></label>
-                                <input type="url" class="form-control" id="modalBookmarkUrl" required placeholder="https://example.com">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">所属文件夹</label>
-                                <div class="tree-select">
-                                    <div class="tree-select-input form-control d-flex align-items-center justify-content-between" onclick="toggleBookmarkTreePanel()">
-                                        <span id="modalBookmarkFolderLabel" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">请选择文件夹</span>
-                                        <i class="bi bi-chevron-down" style="font-size:12px;color:#aaa"></i>
-                                    </div>
-                                    <input type="hidden" id="modalBookmarkFolderId" value="">
-                                    <div class="tree-select-dropdown" id="bookmarkTreeSelectDropdown"></div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="modalBookmarkLogoUrl" class="form-label">Logo URL</label>
-                                <input type="text" class="form-control" id="modalBookmarkLogoUrl" placeholder="网站图标地址（可选）">
-                            </div>
-                            <div class="col-12">
-                                <label for="modalBookmarkDescription" class="form-label">描述</label>
-                                <textarea class="form-control" id="modalBookmarkDescription" rows="2" placeholder="书签描述（可选）"></textarea>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="modalBookmarkTags" class="form-label">标签</label>
-                                <input type="text" class="form-control" id="modalBookmarkTags" placeholder="多个标签用逗号分隔">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">类型</label>
-                                <div>
-                                    <div class="form-check form-check-inline">
-                                        <input class="form-check-input" type="radio" name="modalBookmarkPublicType" id="modalPublicType1" value="1" checked>
-                                        <label class="form-check-label" for="modalPublicType1">公开</label>
-                                    </div>
-                                    <div class="form-check form-check-inline">
-                                        <input class="form-check-input" type="radio" name="modalBookmarkPublicType" id="modalPublicType0" value="0">
-                                        <label class="form-check-label" for="modalPublicType0">私密</label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary btn-sm" onclick="submitBookmarkFromModal()">保存</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 导入/导出模态框 -->
-    <div class="modal fade" id="importModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
-        <div class="modal-header"><h5 class="modal-title">导入书签</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-        <div class="modal-body">
-            <form id="importForm" enctype="multipart/form-data">
-                <div class="mb-2"><label class="form-label">选择书签文件</label><input type="file" class="form-control form-control-sm" id="importFile" accept=".html,.htm" required></div>
-                <div class="form-check mb-1"><input class="form-check-input" type="checkbox" id="importStructure" value="YES" checked><label class="form-check-label">按目录结构导入</label></div>
-                <div class="form-check mb-2"><input class="form-check-input" type="checkbox" id="importPrivate" value="PRIVATE"><label class="form-check-label">私密导入</label></div>
-            </form>
-            <div id="importStatus" class="small"></div>
-        </div>
-        <div class="modal-footer"><button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">取消</button><button class="btn btn-sm btn-primary" onclick="doImport()">开始导入</button></div>
-    </div></div></div>
-
-    <div class="modal fade" id="exportModal" tabindex="-1"><div class="modal-dialog modal-xl"><div class="modal-content">
-        <div class="modal-header border-0 pb-0"><h5 class="modal-title"><i class="bi bi-download me-2"></i>导出收藏夹</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-        <div class="modal-body pt-2">
-            <p class="text-muted small mb-3"><i class="bi bi-info-circle me-1"></i>将书签导出为浏览器兼容的 HTML 书签文件，可导入到 Chrome、Edge、Firefox 等浏览器。</p>
-            <div class="row g-3">
-                <div class="col-md-7">
-                    <div class="card border shadow-sm">
-                        <div class="card-header bg-light d-flex align-items-center justify-content-between py-2 px-3">
-                            <span class="fw-semibold small"><i class="bi bi-folder2 me-1"></i>选择文件夹</span>
-                            <div class="form-check form-switch mb-0">
-                                <input class="form-check-input" type="checkbox" id="exportSelectAll" checked style="cursor:pointer">
-                                <label class="form-check-label small" for="exportSelectAll">全选</label>
-                            </div>
-                        </div>
-                        <div class="card-body p-1" style="max-height:420px;overflow-y:auto">
-                            <div id="exportFolderTree"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-5">
-                    <div class="card border shadow-sm">
-                        <div class="card-header bg-light py-2 px-3">
-                            <span class="fw-semibold small"><i class="bi bi-sliders me-1"></i>导出选项</span>
-                        </div>
-                        <div class="card-body p-3">
-                            <div class="mb-3">
-                                <label class="form-label small fw-semibold text-muted mb-1">导出格式</label>
-                                <div class="d-flex flex-column gap-2" id="exportFormatRadios">
-                                    <div class="form-check export-format-option border rounded p-2 mb-0" style="cursor:pointer">
-                                        <input class="form-check-input" type="radio" name="exportFormat" id="fmtHtml" value="html" checked>
-                                        <label class="form-check-label" for="fmtHtml">
-                                            <span class="d-block fw-semibold small">HTML</span>
-                                            <span class="d-block text-muted" style="font-size:11px">浏览器书签格式，可导入 Chrome/Edge/Firefox</span>
-                                        </label>
-                                    </div>
-                                    <div class="form-check export-format-option border rounded p-2 mb-0" style="cursor:pointer">
-                                        <input class="form-check-input" type="radio" name="exportFormat" id="fmtCsv" value="csv">
-                                        <label class="form-check-label" for="fmtCsv">
-                                            <span class="d-block fw-semibold small">CSV</span>
-                                            <span class="d-block text-muted" style="font-size:11px">表格格式，可用 Excel / Numbers 打开</span>
-                                        </label>
-                                    </div>
-                                    <div class="form-check export-format-option border rounded p-2 mb-0" style="cursor:pointer">
-                                        <input class="form-check-input" type="radio" name="exportFormat" id="fmtJson" value="json">
-                                        <label class="form-check-label" for="fmtJson">
-                                            <span class="d-block fw-semibold small">JSON</span>
-                                            <span class="d-block text-muted" style="font-size:11px">结构化数据，适合程序处理或备份还原</span>
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="modal-footer border-0 pt-0"><button class="btn btn-sm btn-light" data-bs-dismiss="modal">取消</button><button class="btn btn-sm btn-primary" onclick="doExport()"><i class="bi bi-download me-1"></i>确认导出</button></div>
-    </div></div></div>
-
-    <div class="modal fade" id="iconModal" tabindex="-1"><div class="modal-dialog modal-xl"><div class="modal-content">
-        <div class="modal-header"><h5 class="modal-title"><i class="bi bi-emoji-smile"></i> 图标管理</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-        <div class="modal-body">
-            <div class="d-flex justify-content-between align-items-center mb-3 gap-2 flex-wrap">
-                <select class="form-select form-select-sm" id="iconCategorySelect" onchange="changeIconCategory(this.value)" style="width:auto;min-width:120px">
-                    <option value="all">全部 (加载中...)</option>
-                </select>
-                <div class="input-group input-group-sm" style="max-width:220px">
-                    <span class="input-group-text"><i class="bi bi-search"></i></span>
-                    <input type="text" id="iconSearchInput" class="form-control" placeholder="搜索图标..." oninput="filterIcons()">
-                </div>
-            </div>
-            <p class="text-muted small mb-3">共 <span id="iconTotalCount">0</span> 个图标，点击即可复制 <code>bi bi-xxx</code> 类名</p>
-            <div class="icon-grid" id="iconGrid"></div>
-            <div id="iconNoResult" class="text-center py-4 d-none">
-                <i class="bi bi-emoji-frown fs-1 text-muted"></i>
-                <p class="text-muted mt-2">未找到匹配的图标</p>
-            </div>
-        </div>
-    </div></div></div>
+    <!-- ========== 工具弹窗组 ========== -->
+    <div th:replace="fragments/tool-modals :: toolModals"></div>
 
     <script th:inline="javascript">
     /*<![CDATA[*/
@@ -1271,6 +653,7 @@
     var currentFolderId = null;
     var currentPage = 1;
     var currentSize = 10;
+    var currentSearchKeyword = '';
     var currentAbort = null;
     var deleteBookmarkId = null;
     var deleteFolderId = null;
@@ -1306,6 +689,7 @@
         var kwEl = document.getElementById('searchKeyword');
         var ptEl = document.getElementById('searchPublicType');
         var keyword = kwEl ? kwEl.value.trim() : '';
+        currentSearchKeyword = keyword;
         var publicType = ptEl ? ptEl.value : '';
         var cf = currentFolderId, cp = currentPage;
 
@@ -1341,8 +725,8 @@
                 return '<tr draggable="true" data-id="' + b.id + '" data-sort="' + (b.sortOrder || 0) + '" ondragstart="tableDragStart(event)" ondragend="tableDragEnd(event)">'
                     + '<td><i class="bi bi-grip-vertical text-muted" style="cursor:grab"></i></td>'
                     + '<td>' + b.id + '</td>'
-                    + '<td>' + (b.logoUrl ? '<img src="' + escapeAttr(b.logoUrl) + '" class="bookmark-logo" onerror="this.style.display=\'none\'">' : '') + escapeHtml(b.title || '') + '</td>'
-                    + '<td><a href="' + escapeAttr(b.url || '#') + '" target="_blank" class="text-decoration-none small">' + escapeHtml(abbreviate(b.url || '', 35)) + '</a></td>'
+                    + '<td>' + (b.logoUrl ? '<img src="' + escapeAttr(b.logoUrl) + '" class="bookmark-logo" onerror="this.style.display=\'none\'">' : '') + highlightText(b.title || '', currentSearchKeyword) + '</td>'
+                    + '<td><a href="' + escapeAttr(b.url || '#') + '" target="_blank" class="text-decoration-none small">' + highlightText(abbreviate(b.url || '', 35), currentSearchKeyword) + '</a></td>'
                     + '<td>' + (b.publicType === 1 ? '<span class="badge bg-success">公开</span>' : '<span class="badge bg-warning text-dark">私密</span>') + '</td>'
                     + '<td class="small">' + formatTime(b.createTime) + '</td>'
                     + '<td>'
@@ -1938,5 +1322,7 @@
     };
 
     </script>
+</body>
+</html>
 </body>
 </html>

@@ -1,0 +1,153 @@
+<!-- fragment: bookmark-modals -->
+<div th:fragment="bookmarkModals" xmlns:th="http://www.thymeleaf.org">
+    <!-- 管理面板书签模态框（与浏览模式共用的是一个，但管理模式用自有JS) -->
+    <div class="modal fade" id="mgrBookmarkModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="mgrBookmarkModalTitle">新建书签</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="mgrBookmarkForm" onsubmit="return false">
+                        <input type="hidden" id="mgrModalBookmarkId">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="mgrModalBookmarkTitle" class="form-label">标题 <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="mgrModalBookmarkTitle" required placeholder="请输入书签标题">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="mgrModalBookmarkUrl" class="form-label">URL <span class="text-danger">*</span></label>
+                                <input type="url" class="form-control" id="mgrModalBookmarkUrl" required placeholder="https://example.com">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">所属文件夹</label>
+                                <div class="tree-select">
+                                    <div class="tree-select-input form-control d-flex align-items-center justify-content-between" onclick="toggleMgrBookmarkTreePanel()">
+                                        <span id="mgrModalBookmarkFolderLabel" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">请选择文件夹</span>
+                                        <i class="bi bi-chevron-down" style="font-size:12px;color:#aaa"></i>
+                                    </div>
+                                    <input type="hidden" id="mgrModalBookmarkFolderId" value="">
+                                    <div class="tree-select-dropdown" id="mgrBookmarkTreeSelectDropdown"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="mgrModalBookmarkLogoUrl" class="form-label">Logo URL</label>
+                                <input type="text" class="form-control" id="mgrModalBookmarkLogoUrl" placeholder="网站图标地址（可选）">
+                            </div>
+                            <div class="col-12">
+                                <label for="mgrModalBookmarkDescription" class="form-label">描述</label>
+                                <textarea class="form-control" id="mgrModalBookmarkDescription" rows="2" placeholder="书签描述（可选）"></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="mgrModalBookmarkTags" class="form-label">标签</label>
+                                <input type="text" class="form-control" id="mgrModalBookmarkTags" placeholder="多个标签用逗号分隔">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">类型</label>
+                                <div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="mgrModalBookmarkPublicType" id="mgrPublicType1" value="1" checked>
+                                        <label class="form-check-label" for="mgrPublicType1">公开</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="mgrModalBookmarkPublicType" id="mgrPublicType0" value="0">
+                                        <label class="form-check-label" for="mgrPublicType0">私密</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="submitMgrBookmarkModal()">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- 删除书签确认模态框 -->
+    <div class="modal fade" id="deleteBookmarkModal" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">确认删除</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>确定要删除该书签吗？此操作不可恢复。</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="confirmDeleteBookmark()">删除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- 新建书签模态框 -->
+    <div class="modal fade" id="bookmarkModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="bookmarkModalTitle">新建书签</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="bookmarkModalForm" onsubmit="return false">
+                        <input type="hidden" id="modalBookmarkId">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="modalBookmarkTitle" class="form-label">标题 <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="modalBookmarkTitle" required placeholder="请输入书签标题">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="modalBookmarkUrl" class="form-label">URL <span class="text-danger">*</span></label>
+                                <input type="url" class="form-control" id="modalBookmarkUrl" required placeholder="https://example.com">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">所属文件夹</label>
+                                <div class="tree-select">
+                                    <div class="tree-select-input form-control d-flex align-items-center justify-content-between" onclick="toggleBookmarkTreePanel()">
+                                        <span id="modalBookmarkFolderLabel" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">请选择文件夹</span>
+                                        <i class="bi bi-chevron-down" style="font-size:12px;color:#aaa"></i>
+                                    </div>
+                                    <input type="hidden" id="modalBookmarkFolderId" value="">
+                                    <div class="tree-select-dropdown" id="bookmarkTreeSelectDropdown"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="modalBookmarkLogoUrl" class="form-label">Logo URL</label>
+                                <input type="text" class="form-control" id="modalBookmarkLogoUrl" placeholder="网站图标地址（可选）">
+                            </div>
+                            <div class="col-12">
+                                <label for="modalBookmarkDescription" class="form-label">描述</label>
+                                <textarea class="form-control" id="modalBookmarkDescription" rows="2" placeholder="书签描述（可选）"></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="modalBookmarkTags" class="form-label">标签</label>
+                                <input type="text" class="form-control" id="modalBookmarkTags" placeholder="多个标签用逗号分隔">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">类型</label>
+                                <div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="modalBookmarkPublicType" id="modalPublicType1" value="1" checked>
+                                        <label class="form-check-label" for="modalPublicType1">公开</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="modalBookmarkPublicType" id="modalPublicType0" value="0">
+                                        <label class="form-check-label" for="modalPublicType0">私密</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="submitBookmarkFromModal()">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

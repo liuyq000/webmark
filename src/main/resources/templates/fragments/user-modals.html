@@ -1,0 +1,37 @@
+<!-- fragment: user-modals -->
+<div th:fragment="userModals" xmlns:th="http://www.thymeleaf.org">
+            <!-- 用户新建/编辑弹窗 -->
+            <div class="modal fade" id="userModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+                <div class="modal-header"><h5 class="modal-title" id="userModalTitle"><i class="bi bi-person-plus me-2"></i>新建用户</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <input type="hidden" id="userModalId">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small">用户名 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control form-control-sm" id="userModalUserName" required minlength="3" maxlength="50">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">邮箱</label>
+                            <input type="email" class="form-control form-control-sm" id="userModalEmail">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">密码 <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control form-control-sm" id="userModalPassword" minlength="6" placeholder="新建时必填">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">角色</label>
+                            <select class="form-select form-select-sm" id="userModalRole">
+                                <option value="ROLE_USER">普通用户</option>
+                                <option value="ROLE_ADMIN">管理员</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small">个人简介</label>
+                            <textarea class="form-control form-control-sm" id="userModalIntro" rows="2" placeholder="可选"></textarea>
+                        </div>
+                        <div class="col-12"><span id="userModalError" class="small text-danger"></span></div>
+                    </div>
+                </div>
+                <div class="modal-footer"><button class="btn btn-sm btn-light" data-bs-dismiss="modal">取消</button><button class="btn btn-sm btn-primary" onclick="saveUser()"><i class="bi bi-check-lg me-1"></i>保存</button></div>
+            </div></div></div>
+</div>

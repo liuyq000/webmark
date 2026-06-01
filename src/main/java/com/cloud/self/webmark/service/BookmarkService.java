@@ -50,7 +50,9 @@ public class BookmarkService {
                     boolean match = true;
                     if (keyword != null && !keyword.isEmpty()) {
                         match = (b.getTitle() != null && b.getTitle().contains(keyword))
-                                || (b.getUrl() != null && b.getUrl().contains(keyword));
+                                || (b.getUrl() != null && b.getUrl().contains(keyword))
+                                || (b.getDescription() != null && b.getDescription().contains(keyword))
+                                || (b.getTags() != null && b.getTags().contains(keyword));
                     }
                     if (match && folderId != null) {
                         match = folderId.equals(b.getFolderId());
@@ -71,7 +73,9 @@ public class BookmarkService {
                     boolean match = true;
                     if (keyword != null && !keyword.isEmpty()) {
                         match = (b.getTitle() != null && b.getTitle().contains(keyword))
-                                || (b.getUrl() != null && b.getUrl().contains(keyword));
+                                || (b.getUrl() != null && b.getUrl().contains(keyword))
+                                || (b.getDescription() != null && b.getDescription().contains(keyword))
+                                || (b.getTags() != null && b.getTags().contains(keyword));
                     }
                     if (match && folderIds != null && !folderIds.isEmpty()) {
                         match = b.getFolderId() != null && folderIds.contains(b.getFolderId());

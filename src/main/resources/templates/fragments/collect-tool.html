@@ -1,0 +1,35 @@
+<!-- fragment: collect-tool -->
+            <!-- 网页收集工具面板 -->
+<div th:fragment="collectTool" id="collectToolPanel" xmlns:th="http://www.thymeleaf.org"
+     style="display:none; position:fixed; top:56px; left:220px; right:0; bottom:0; background:#f5f6fa; z-index:900; padding:24px; overflow:auto;">
+                <h5 class="mb-3"><i class="bi bi-globe me-2"></i>网页收集工具</h5>
+                <div style="max-width:650px">
+                    <div class="card border-0 shadow-sm mb-3">
+                        <div class="card-body">
+                            <h6 class="card-title"><i class="bi bi-puzzle me-1"></i> 1、使用浏览器扩展收藏网页</h6>
+                            <p class="text-muted mb-2">支持：Chrome / 360极速 / QQ / UC / 百度浏览器</p>
+                            <a target="_blank" href="https://chrome.google.com/webstore/detail/%E4%BA%91%E6%94%B6%E8%97%8F/gnidnmkcdgfiemdaeijncglpgldflhbb?hl=zh-CN" class="btn btn-primary btn-sm">
+                                <i class="bi bi-download me-1"></i>下载扩展
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card border-0 shadow-sm mb-3">
+                        <div class="card-body">
+                            <h6 class="card-title"><i class="bi bi-bookmark-plus me-1"></i> 2、网页收集小工具</h6>
+                            <p class="text-muted mb-2">将该按钮拖动至浏览器书签栏，在任意网页点击即可收藏</p>
+                            <a th:attr="href=${bookmarkletPath}" onclick="alert('请把这个按钮拖到您的浏览器书签栏'); return false;" class="btn btn-success btn-sm">
+                                <i class="bi bi-bookmark-star me-1"></i>本地书签
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body text-center">
+                            <h6 class="card-title mb-3">使用说明</h6>
+                            <div class="text-start text-muted small">
+                                <p><strong>浏览器扩展方式：</strong>安装扩展后，在任意网页点击扩展图标即可快速收藏当前页面到本地书签。</p>
+                                <p><strong>书签栏小工具方式：</strong>将上方「本地书签」按钮直接拖拽到浏览器书签栏。之后在任意网页点击该书签，即可一键收藏当前页面。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>

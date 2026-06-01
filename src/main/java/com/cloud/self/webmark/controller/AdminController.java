@@ -4,6 +4,7 @@ import com.cloud.self.webmark.entity.Bookmark;
 import com.cloud.self.webmark.entity.Folder;
 import com.cloud.self.webmark.entity.User;
 import com.cloud.self.webmark.service.BookmarkService;
+import com.cloud.self.webmark.service.FaviconService;
 import com.cloud.self.webmark.service.FolderService;
 import com.cloud.self.webmark.service.UserService;
 import com.cloud.self.webmark.store.PageResult;
@@ -43,6 +44,7 @@ public class AdminController {
     private final BookmarkService bookmarkService;
     private final FolderService folderService;
     private final UserService userService;
+    private final FaviconService faviconService;
     private final PasswordEncoder passwordEncoder;
     // ========== 页面路由统一重定向到 /index ==========
 
@@ -77,6 +79,10 @@ public class AdminController {
             result.put("success", true);
             result.put("message", "成功导入 " + savedCount + " 条书签");
             result.put("count", savedCount);
+            if (savedCount > 0) {
+                final User savedUser = user;
+                new Thread(() -> batchFetchFavicons(savedUser)).start();
+            }
         } catch (Exception e) {
             log.debug("书签导入失败", e);
             result.put("success", false);
@@ -415,5 +421,29 @@ public class AdminController {
         result.put("success", ok);
         result.put("message", ok ? "删除成功" : "删除失败");
         return result;
+    }
+
+    // ========== favicon 批量抓取 ==========
+
+    /** 后台批量抓取用户所有无图标的书签 favicon */
+    private void batchFetchFavicons(User user) {
+        try {
+            Thread.sleep(500); // 等待导入写入完成
+        } catch (InterruptedException ignored) { return; }
+        try {
+            List<Bookmark> bookmarks = bookmarkService.listByUserId(user.getId());
+            for (Bookmark b : bookmarks) {
+                if (b.getLogoUrl() != null && !b.getLogoUrl().isEmpty()) continue;
+                try {
+                    String logoUrl = faviconService.fetchAndSave(b.getUrl());
+                    if (logoUrl != null) {
+                        b.setLogoUrl(logoUrl);
+                        bookmarkService.updateById(b);
+                    }
+                } catch (Exception ignored) {}
+            }
+        } catch (Exception e) {
+            log.debug("批量抓取 favicon 异常: {}", e.getMessage());
+        }
     }
 }

@@ -73,5 +73,17 @@
 
     <script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
     <script th:src="@{/js/main.js}"></script>
+    <script>
+    (function() {
+        var keyword = /*[[${key}]]*/ '';
+        if (!keyword) return;
+        document.querySelectorAll('.resource-grid .card-name, .resource-grid .card-desc').forEach(function(el) {
+            var text = el.textContent;
+            var escapedKw = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            var regex = new RegExp('(' + escapedKw + ')', 'gi');
+            el.innerHTML = text.replace(regex, '<mark class="search-highlight">$1</mark>');
+        });
+    })();
+    </script>
 </body>
 </html>

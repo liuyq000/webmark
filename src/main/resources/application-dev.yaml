@@ -10,7 +10,7 @@ spring:
     suffix: .html
   web:
     resources:
-      static-locations: classpath:/static/
+      static-locations: classpath:/static/, file:./data/
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: Asia/Shanghai
