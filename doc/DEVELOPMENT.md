@@ -5,7 +5,7 @@
 | 工具 | 版本要求 | 说明 |
 |------|---------|------|
 | JDK | 17+ | 推荐 17 |
-| Maven | 3.6+ | 构建工具 |
+| Maven | 3.3.9 | `E:\java\apache-maven-3.3.9`，本地仓库 `D:\maven_jar` |
 | IDE | IntelliJ IDEA | 推荐 |
 | Git | 2.x | 版本管理 |
 
@@ -145,7 +145,7 @@ public String newPage() {
 项目的前端 JavaScript 分为两种组织形式：
 
 1. **全局脚本**：`static/js/main.js`（前台）、`static/js/admin.js`（后台）
-2. **内嵌脚本**：复杂页面（如 `index.html` 的管理模式、`bookmark/list.html`）的 JS 直接内嵌在模板中
+2. **内嵌脚本**：复杂页面（如 `index.html` 的书签管理、`bookmark/list.html`）的 JS 直接内嵌在模板中
 
 推荐新页面的 JS 逻辑内嵌在模板中，避免全局脚本膨胀。
 

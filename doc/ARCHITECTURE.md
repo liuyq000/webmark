@@ -196,22 +196,14 @@ HTML 文件 → Jsoup 解析 → HtmlUtil.parseTree() / parseFlat()
 
 | 路径 | 模板 | 说明 |
 |------|------|------|
-| `/` | `index.html` | 首页，浏览模式 + 管理模式双模式 |
+| `/` | `index.html` | 首页，浏览模式 + 书签管理双模式 |
 | `/login` | `login.html` | 登录页 |
 | `/register` | `register.html` | 注册页 |
 | `/search` | `search.html` | 搜索结果页 |
 
 ### 4.2 管理后台（需登录）
 
-| 路径 | 模板 | 说明 |
-|------|------|------|
-| `/admin/bookmark/list` | `admin/bookmark/list.html` | 书签管理（左树右表） |
-| `/admin/icon/list` | `admin/icon/list.html` | 图标浏览管理 |
-| `/admin/tool/collect` | `admin/tool/collect.html` | Bookmarklet 工具 |
-| `/admin/tool/import` | `admin/tool/import.html` | 导入书签 |
-| `/admin/tool/export` | `admin/tool/export.html` | 导出书签 |
-| `/admin/user/list` | `admin/user/list.html` | 用户管理 |
-| `/admin/config` | `admin/config.html` | 系统配置 |
+所有 `/admin/*` 页面路由统一 `redirect:/index`，后台功能（书签管理、用户管理、导入导出、图标浏览等）均通过 `index.html` 内的面板切换实现，无需独立模板页面。
 
 ## 五、数据流示例
 
@@ -267,8 +259,6 @@ webmark.data.dir: ./data
 
 | 方向 | 优先级 | 说明 |
 |------|--------|------|
-| viewCount/collectCount | 高 | 书签浏览量和收藏量统计 |
-| 拖拽排序持久化 | 高 | 首页书签卡片拖拽排序 |
 | 全文搜索优化 | 中 | 引入倒排索引提升搜索性能 |
 | 多用户协作 | 中 | 支持分享文件夹给其他用户 |
 | 数据备份恢复 | 低 | 一键备份/恢复 JSON 数据 |

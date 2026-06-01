@@ -97,6 +97,8 @@ webmark/
 
 | 文档 | 说明 |
 |------|------|
+| [ANALYSIS.md](ANALYSIS.md) | 项目分析 & 优化建议 |
+| [PROJECT.md](PROJECT.md) | 项目介绍 & 功能清单 & 补充说明 |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | 架构设计与核心原理 |
 | [API.md](API.md) | REST API 接口文档 |
 | [DEVELOPMENT.md](DEVELOPMENT.md) | 开发指南 |
