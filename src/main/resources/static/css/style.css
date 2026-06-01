@@ -214,6 +214,8 @@ a {
     overflow: hidden;
     z-index: 900;
     transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
 }
 
 /* 侧边栏迷你模式 */
@@ -222,11 +224,31 @@ a {
 }
 
 .sidebar-nav {
-    position: relative;
-    height: 100%;
+    flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 8px 0 20px;
+    padding: 8px 0;
+}
+
+/* 用户底部菜单栏 — 固定在侧边栏底部，不随菜单滚动 */
+#userDropdown,
+#guestLoginBar {
+    flex-shrink: 0;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    position: relative;
+    z-index: 1;
+}
+
+/* 用户弹出菜单向上展开，覆盖在菜单栏之上 */
+#userDropdownMenu {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    right: 0;
+    overflow: hidden;
+    background: var(--sidebar-bg);
+    border-radius: 8px 8px 0 0;
+    box-shadow: 0 -4px 12px rgba(0,0,0,0.3);
 }
 
 /* 侧边栏用户信息 */

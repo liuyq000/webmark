@@ -191,32 +191,8 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // 点击切换折叠（互斥：展开一个，收起其他）
-    document.querySelectorAll('.channel-title[data-toggle="channel"]').forEach(function (title) {
-        title.addEventListener('click', function (e) {
-            var channel = this.closest('.sidebar-channel');
-            var folderId = this.getAttribute('data-folder-id');
-
-            // 一级导航点击：切换右侧面板
-            if (folderId) {
-                switchFolderPanel(folderId);
-            }
-
-            var wasOpen = channel.classList.contains('open');
-            // 收起所有有 data-toggle="channel" 的频道
-            document.querySelectorAll('.sidebar-channel').forEach(function (c) {
-                if (c.querySelector('[data-toggle="channel"]')) {
-                    c.classList.remove('open');
-                }
-            });
-            // 如果原来不是展开状态，则展开当前频道
-            if (!wasOpen) {
-                channel.classList.add('open');
-            }
-
-            saveChannelStates();
-        });
-    });
+    // 点击切换折叠 — 由 index.html 的事件委托统一处理（确保 innerHTML 替换后事件不丢失）
+    // 此处不再重复绑定，避免与委托 handler 冲突
 
     // 二级导航点击：滚动到对应区域
     document.querySelectorAll('.sub-nav-link').forEach(function (link) {

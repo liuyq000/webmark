@@ -81,9 +81,9 @@
         <aside class="sidebar" id="sidebar">
             <nav class="sidebar-nav">
                 <!-- 动态文件夹栏目 -->
-                <div th:each="folder : ${folderTree}" class="sidebar-channel open"
-                     th:attr="data-folder-id=${folder.id}, data-tooltip=${folder.name} + ' ' + ${folder.nameEn}"
-                     th:classappend="${folder.id == folderId} ? 'active' : ''">
+                <div th:each="folder : ${folderTree}" class="sidebar-channel"
+                     th:classappend="${folder.id == folderId} ? 'open active' : ''"
+                     th:attr="data-folder-id=${folder.id}, data-tooltip=${folder.name} + ' ' + ${folder.nameEn}">
                     <div class="channel-title" data-toggle="channel" th:attr="data-folder-id=${folder.id}">
                         <i class="bi channel-icon" th:classappend="${folder.icon != null ? folder.icon : 'bi-folder'}"></i>
                         <span class="channel-text" th:text="${folder.name}">栏目名</span>
@@ -103,38 +103,38 @@
                         </li>
                     </ul>
                 </div>
-                <!-- 用户下拉菜单（登录后显示） -->
-                <div sec:authorize="isAuthenticated()" id="userDropdown" style="position:absolute;bottom:0;left:0;right:0;border-top:1px solid rgba(255,255,255,0.1);">
-                    <div id="userDropdownMenu" style="display:none;overflow:hidden;">
-                        <ul style="list-style:none;padding:0;margin:0;border-bottom:1px solid rgba(255,255,255,0.08);">
-                            <li><a href="javascript:;" onclick="showBmMgmt();closeUserDropdown();" style="display:block;padding:10px 16px 10px 40px;color:var(--sidebar-text);font-size:13px;transition:all 0.15s;border-left:3px solid transparent"><i class="bi bi-bookmarks" style="margin-right:8px;font-size:13px"></i>书签管理</a></li>
-                            <li><a href="javascript:;" onclick="showUserMgmt();closeUserDropdown();" style="display:block;padding:10px 16px 10px 40px;color:var(--sidebar-text);font-size:13px;transition:all 0.15s;border-left:3px solid transparent"><i class="bi bi-person-gear" style="margin-right:8px;font-size:13px"></i>用户管理</a></li>
-                            <li><a href="javascript:;" onclick="showCollectTool();closeUserDropdown();" style="display:block;padding:10px 16px 10px 40px;color:var(--sidebar-text);font-size:13px;transition:all 0.15s;border-left:3px solid transparent"><i class="bi bi-globe" style="margin-right:8px;font-size:13px"></i>网页收集工具</a></li>
-                            <li>
-                                <form th:action="@{/logout}" method="post" style="margin:0;">
-                                    <button type="submit" style="width:100%;background:none;border:none;color:var(--sidebar-text);padding:10px 16px 10px 40px;font-size:13px;cursor:pointer;text-align:left;border-left:3px solid transparent;display:flex;align-items:center;">
-                                        <i class="bi bi-box-arrow-right" style="margin-right:8px;font-size:13px"></i>退出登录
-                                    </button>
-                                </form>
-                            </li>
-                        </ul>
-                    </div>
-                    <button type="button" id="userDropdownToggle" style="width:100%;background:none;border:none;color:var(--sidebar-text);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-size:14px;">
-                        <span style="display:flex;align-items:center;overflow:hidden;">
-                            <i class="bi bi-person-circle" style="margin-right:8px;font-size:16px;flex-shrink:0"></i>
-                            <span th:text="${user.userName}" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px">admin</span>
-                        </span>
-                        <i class="bi bi-caret-up-fill" id="userDropdownArrow" style="font-size:12px;flex-shrink:0;transition:transform 0.2s"></i>
-                    </button>
-                </div>
-                <!-- 未登录：左侧底部登录入口 -->
-                <div sec:authorize="!isAuthenticated()" id="guestLoginBar" style="position:absolute;bottom:0;left:0;right:0;border-top:1px solid rgba(255,255,255,0.1);">
-                    <a th:href="@{/login}" style="display:flex;align-items:center;padding:10px 16px;color:var(--sidebar-text);text-decoration:none;font-size:13px;transition:background 0.15s;">
-                        <i class="bi bi-person-circle" style="margin-right:8px;font-size:16px"></i>
-                        <span>登录 / 注册</span>
-                    </a>
-                </div>
             </nav>
+            <!-- 用户下拉菜单（登录后显示）固定在侧边栏底部 -->
+            <div sec:authorize="isAuthenticated()" id="userDropdown">
+                <div id="userDropdownMenu" style="display:none;overflow:hidden;">
+                    <ul style="list-style:none;padding:0;margin:0;border-bottom:1px solid rgba(255,255,255,0.08);">
+                        <li><a href="javascript:;" onclick="showBmMgmt();closeUserDropdown();" style="display:block;padding:10px 16px 10px 40px;color:var(--sidebar-text);font-size:13px;transition:all 0.15s;border-left:3px solid transparent"><i class="bi bi-bookmarks" style="margin-right:8px;font-size:13px"></i>书签管理</a></li>
+                        <li><a href="javascript:;" onclick="showUserMgmt();closeUserDropdown();" style="display:block;padding:10px 16px 10px 40px;color:var(--sidebar-text);font-size:13px;transition:all 0.15s;border-left:3px solid transparent"><i class="bi bi-person-gear" style="margin-right:8px;font-size:13px"></i>用户管理</a></li>
+                        <li><a href="javascript:;" onclick="showCollectTool();closeUserDropdown();" style="display:block;padding:10px 16px 10px 40px;color:var(--sidebar-text);font-size:13px;transition:all 0.15s;border-left:3px solid transparent"><i class="bi bi-globe" style="margin-right:8px;font-size:13px"></i>网页收集工具</a></li>
+                        <li>
+                            <form th:action="@{/logout}" method="post" style="margin:0;">
+                                <button type="submit" style="width:100%;background:none;border:none;color:var(--sidebar-text);padding:10px 16px 10px 40px;font-size:13px;cursor:pointer;text-align:left;border-left:3px solid transparent;display:flex;align-items:center;">
+                                    <i class="bi bi-box-arrow-right" style="margin-right:8px;font-size:13px"></i>退出登录
+                                </button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
+                <button type="button" id="userDropdownToggle" style="width:100%;background:none;border:none;color:var(--sidebar-text);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-size:14px;">
+                    <span style="display:flex;align-items:center;overflow:hidden;">
+                        <i class="bi bi-person-circle" style="margin-right:8px;font-size:16px;flex-shrink:0"></i>
+                        <span th:text="${user.userName}" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px">admin</span>
+                    </span>
+                    <i class="bi bi-caret-up-fill" id="userDropdownArrow" style="font-size:12px;flex-shrink:0;transition:transform 0.2s"></i>
+                </button>
+            </div>
+            <!-- 未登录：左侧底部登录入口 -->
+            <div sec:authorize="!isAuthenticated()" id="guestLoginBar">
+                <a th:href="@{/login}" style="display:flex;align-items:center;padding:10px 16px;color:var(--sidebar-text);text-decoration:none;font-size:13px;transition:background 0.15s;">
+                    <i class="bi bi-person-circle" style="margin-right:8px;font-size:16px"></i>
+                    <span>登录 / 注册</span>
+                </a>
+            </div>
         </aside>
 
         <!-- 右侧主内容区 -->
