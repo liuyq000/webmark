@@ -1,4 +1,19 @@
 
+// ========== 全局工具函数（供 index.html 内联 JS 调用） ==========
+function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+function highlightText(text, keyword) {
+    if (!keyword || !text) return escapeHtml(text || '');
+    var escaped = escapeHtml(text);
+    var escapedKw = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    var regex = new RegExp('(' + escapedKw + ')', 'gi');
+    return escaped.replace(regex, '<mark class="search-highlight">$1</mark>');
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     // 移动端侧边栏
     const sidebar = document.getElementById('sidebar');
@@ -379,20 +394,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     });
             }, 300);
         });
-    }
-
-    function escapeHtml(str) {
-        var div = document.createElement('div');
-        div.textContent = str;
-        return div.innerHTML;
-    }
-
-    function highlightText(text, keyword) {
-        if (!keyword || !text) return escapeHtml(text || '');
-        var escaped = escapeHtml(text);
-        var escapedKw = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        var regex = new RegExp('(' + escapedKw + ')', 'gi');
-        return escaped.replace(regex, '<mark class="search-highlight">$1</mark>');
     }
 
     // =================== 新建书签 Modal ===================

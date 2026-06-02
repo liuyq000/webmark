@@ -640,7 +640,6 @@
 
     // ========== 工具函数 ==========
     function esc(s) { if (!s) return ''; return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-    function escapeHtml(s) { if (!s) return ''; return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
     function abbreviate(s, max) { if (!s) return ''; return s.length > max ? s.substring(0, max) + '...' : s; }
     function formatTime(t) {
         if (!t) return '';
@@ -1322,7 +1321,5 @@
     };
 
     </script>
-</body>
-</html>
 </body>
 </html>
