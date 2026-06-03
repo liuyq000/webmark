@@ -110,6 +110,7 @@
                         <li><a href="javascript:;" onclick="showBmMgmt();closeUserDropdown();" style="display:block;padding:10px 16px 10px 40px;color:var(--sidebar-text);font-size:13px;transition:all 0.15s;border-left:3px solid transparent"><i class="bi bi-bookmarks" style="margin-right:8px;font-size:13px"></i>书签管理</a></li>
                         <li><a href="javascript:;" onclick="showUserMgmt();closeUserDropdown();" style="display:block;padding:10px 16px 10px 40px;color:var(--sidebar-text);font-size:13px;transition:all 0.15s;border-left:3px solid transparent"><i class="bi bi-person-gear" style="margin-right:8px;font-size:13px"></i>用户管理</a></li>
                         <li><a href="javascript:;" onclick="showCollectTool();closeUserDropdown();" style="display:block;padding:10px 16px 10px 40px;color:var(--sidebar-text);font-size:13px;transition:all 0.15s;border-left:3px solid transparent"><i class="bi bi-globe" style="margin-right:8px;font-size:13px"></i>网页收集工具</a></li>
+                        <li><a href="javascript:;" onclick="toggleTheme();closeUserDropdown();" style="display:block;padding:10px 16px 10px 40px;color:var(--sidebar-text);font-size:13px;transition:all 0.15s;border-left:3px solid transparent"><i class="bi bi-moon-stars-fill" id="themeToggleIcon" style="margin-right:8px;font-size:13px"></i><span id="themeToggleText">暗色主题</span></a></li>
                         <li>
                             <form th:action="@{/logout}" method="post" style="margin:0;">
                                 <button type="submit" style="width:100%;background:none;border:none;color:var(--sidebar-text);padding:10px 16px 10px 40px;font-size:13px;cursor:pointer;text-align:left;border-left:3px solid transparent;display:flex;align-items:center;">
@@ -647,6 +648,35 @@
         return t.replace('T', ' ').substring(0, 16);
     }
     function escapeAttr(s) { if (!s) return ''; return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    // ========== 主题切换 ==========
+    function toggleTheme() {
+        var html = document.documentElement;
+        var isDark = html.getAttribute('data-theme') === 'dark';
+        var newTheme = isDark ? 'light' : 'dark';
+        html.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        updateThemeUI(newTheme);
+    }
+    function initTheme() {
+        var theme = localStorage.getItem('theme');
+        if (!theme) {
+            theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        document.documentElement.setAttribute('data-theme', theme);
+        updateThemeUI(theme);
+    }
+    function updateThemeUI(theme) {
+        var icon = document.getElementById('themeToggleIcon');
+        var text = document.getElementById('themeToggleText');
+        if (icon) {
+            icon.className = theme === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-stars-fill';
+        }
+        if (text) {
+            text.textContent = theme === 'dark' ? '亮色主题' : '暗色主题';
+        }
+    }
+    initTheme();
 
     // ========== 管理面板全局变量 ==========
     var currentFolderId = null;

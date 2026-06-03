@@ -132,9 +132,9 @@ public class IndexController {
             model.addAttribute("results", bookmarkService.searchPublic(key));
         }
         model.addAttribute("key", key);
+        User loginUser = userDetails != null ? userService.findByUserName(userDetails.getUsername()) : null;
         model.addAttribute("folderTree",
-                userDetails != null ? folderService.listTreeByUserId(
-                        userService.findByUserName(userDetails.getUsername()).getId())
+                loginUser != null ? folderService.listTreeByUserId(loginUser.getId())
                         : folderService.listPublicTree());
         return "search";
     }

@@ -1439,6 +1439,170 @@ a {
     color: var(--sidebar-active);
 }
 
+/* 暗色主题 */
+[data-theme="dark"] {
+    --sidebar-bg: #1a1d27;
+    --sidebar-text: #8a8fa0;
+    --sidebar-active: #5ba0e8;
+    --channel-title-color: #c8cbd4;
+    --main-bg: #1e2029;
+    --card-bg: #2a2d3a;
+    --card-hover-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    --primary: #5ba0e8;
+    --text-primary: #e0e2e8;
+    --text-secondary: #9a9eb0;
+    --border-color: #363946;
+}
+[data-theme="dark"] .top-header {
+    background: #1a1d27;
+    border-bottom-color: #363946;
+}
+[data-theme="dark"] .search-overlay,
+[data-theme="dark"] .search-overlay-mask {
+    background: rgba(30,32,41,0.95);
+}
+[data-theme="dark"] #searchOverlayInput {
+    background: #2a2d3a;
+    color: #e0e2e8;
+}
+[data-theme="dark"] .search-result-item:hover {
+    background: #2a2d3a;
+}
+[data-theme="dark"] .mgmt-tree-panel,
+[data-theme="dark"] .mgmt-table-panel {
+    background: #2a2d3a;
+}
+[data-theme="dark"] .mgmt-tree-panel {
+    border-right-color: #363946;
+}
+[data-theme="dark"] .mgmt-tree-panel .tree-header {
+    background: #232635;
+    border-bottom-color: #363946;
+}
+[data-theme="dark"] #bmMgmtPanel .tree-item:hover { background: #363946; }
+[data-theme="dark"] #bmMgmtPanel .tree-item-actions i:hover { background: rgba(255,255,255,.08); }
+[data-theme="dark"] .table {
+    color: #e0e2e8;
+}
+[data-theme="dark"] .table {
+    --bs-table-bg: transparent;
+    --bs-table-hover-bg: rgba(255,255,255,.03);
+    color: #e0e2e8;
+}
+[data-theme="dark"] .table > :not(caption) > * > * {
+    background-color: transparent;
+    color: #e0e2e8;
+    border-color: #363946;
+}
+[data-theme="dark"] .table-hover tbody tr:hover {
+    color: #e0e2e8;
+    background: rgba(255,255,255,.03);
+}
+[data-theme="dark"] .modal-content {
+    background: #2a2d3a;
+    border-color: #363946;
+}
+[data-theme="dark"] .modal-header,
+[data-theme="dark"] .modal-footer {
+    border-color: #363946;
+}
+[data-theme="dark"] .modal-header .btn-close {
+    filter: invert(0.8);
+}
+[data-theme="dark"] .page-link {
+    background: #2a2d3a;
+    border-color: #363946;
+    color: #e0e2e8;
+}
+[data-theme="dark"] .page-item.active .page-link {
+    background: var(--primary);
+    border-color: var(--primary);
+}
+[data-theme="dark"] .page-item.disabled .page-link {
+    background: #1e2029;
+    border-color: #363946;
+    color: #666;
+}
+[data-theme="dark"] .form-control,
+[data-theme="dark"] .form-select {
+    background: #1e2029;
+    border-color: #363946;
+    color: #e0e2e8;
+}
+[data-theme="dark"] .form-control:focus,
+[data-theme="dark"] .form-select:focus {
+    background: #232635;
+    border-color: var(--primary);
+    color: #e0e2e8;
+}
+[data-theme="dark"] .tree-select-input {
+    background: #1e2029;
+    border-color: #363946;
+    color: #e0e2e8;
+}
+[data-theme="dark"] .tree-select-dropdown {
+    background: #2a2d3a;
+    border-color: #363946;
+}
+[data-theme="dark"] .tree-select-item:hover {
+    background: #363946;
+}
+/* 管理面板 & 卡片暗色覆盖 */
+[data-theme="dark"] .bg-light,
+[data-theme="dark"] .bg-white,
+[data-theme="dark"] .table-light,
+[data-theme="dark"] .table-light th,
+[data-theme="dark"] .card,
+[data-theme="dark"] .card-header,
+[data-theme="dark"] .card-footer,
+[data-theme="dark"] .input-group-text {
+    background-color: #2a2d3a !important;
+    border-color: #363946;
+}
+[data-theme="dark"] .card,
+[data-theme="dark"] .card-header,
+[data-theme="dark"] .card-footer,
+[data-theme="dark"] .input-group-text {
+    border-color: #363946 !important;
+}
+[data-theme="dark"] .text-muted {
+    color: #9a9eb0 !important;
+}
+[data-theme="dark"] .border-top,
+[data-theme="dark"] .border-bottom {
+    border-color: #363946 !important;
+}
+[data-theme="dark"] .table-hover tbody tr:hover {
+    background-color: rgba(255,255,255,.03) !important;
+}
+[data-theme="dark"] .search-box {
+    background: #2a2d3a;
+}
+[data-theme="dark"] .search-box input {
+    background: transparent;
+    color: #e0e2e8;
+}
+[data-theme="dark"] .search-overlay-bar {
+    background: #2a2d3a;
+}
+[data-theme="dark"] .search-overlay-body {
+    background: transparent;
+}
+[data-theme="dark"] .search-overlay-results .search-result-item {
+    border-bottom-color: #363946;
+}
+[data-theme="dark"] .search-result-count {
+    color: #9a9eb0;
+    border-bottom-color: #363946;
+}
+[data-theme="dark"] .search-no-result {
+    color: #666;
+}
+[data-theme="dark"] select option {
+    background: #2a2d3a;
+    color: #e0e2e8;
+}
+
 /* 搜索高亮 */
 mark.search-highlight {
     background: #fff3cd;

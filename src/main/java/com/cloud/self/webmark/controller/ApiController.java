@@ -47,11 +47,38 @@ public class ApiController {
             return ResponseEntity.status(401).body(result);
         }
 
-        String token = jwtUtil.generateToken(user.getUserName(), user.getRole());
+        String token = jwtUtil.generateAccessToken(user.getUserName(), user.getRole());
+        String refreshToken = jwtUtil.generateRefreshToken(user.getUserName(), user.getRole());
         result.put("success", true);
         result.put("token", token);
+        result.put("refreshToken", refreshToken);
         result.put("username", user.getUserName());
         result.put("role", user.getRole());
+        return ResponseEntity.ok(result);
+    }
+
+    /** 刷新 access token */
+    @PostMapping("/auth/refresh")
+    public ResponseEntity<Map<String, Object>> refreshToken(@RequestBody Map<String, String> body) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        String refreshToken = body.get("refreshToken");
+        if (refreshToken == null || !"refresh".equals(jwtUtil.getTokenType(refreshToken))) {
+            result.put("success", false);
+            result.put("message", "无效的 refresh token");
+            return ResponseEntity.status(401).body(result);
+        }
+        String username = jwtUtil.getUsername(refreshToken);
+        User user = userService.findByUserName(username);
+        if (user == null) {
+            result.put("success", false);
+            result.put("message", "用户不存在");
+            return ResponseEntity.status(401).body(result);
+        }
+        String newToken = jwtUtil.generateAccessToken(user.getUserName(), user.getRole());
+        String newRefreshToken = jwtUtil.generateRefreshToken(user.getUserName(), user.getRole());
+        result.put("success", true);
+        result.put("token", newToken);
+        result.put("refreshToken", newRefreshToken);
         return ResponseEntity.ok(result);
     }
 

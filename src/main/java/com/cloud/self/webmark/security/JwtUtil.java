@@ -14,23 +14,34 @@ import java.util.Date;
 public class JwtUtil {
 
     private final SecretKey key;
-    private final long expirationMs;
+    private final long accessExpirationMs;
+    private final long refreshExpirationMs;
 
-    /**
-     * @param secret       密钥（至少 256 bit），默认值仅用于开发
-     * @param expirationMs token 有效期（毫秒），默认 24 小时
-     */
-    public JwtUtil(@Value("${webmark.jwt.secret:webmark-jwt-secret-key-2024-min-32bytes!!}") String secret,
-                   @Value("${webmark.jwt.expiration-ms:86400000}") long expirationMs) {
+    public JwtUtil(
+            @Value("${webmark.jwt.secret:webmark-jwt-secret-key-2024-min-32bytes!!}") String secret,
+            @Value("${webmark.jwt.access-expiration-ms:1800000}") long accessExpirationMs,
+            @Value("${webmark.jwt.refresh-expiration-ms:604800000}") long refreshExpirationMs) {
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
-        this.expirationMs = expirationMs;
+        this.accessExpirationMs = accessExpirationMs;
+        this.refreshExpirationMs = refreshExpirationMs;
     }
 
-    public String generateToken(String username, String role) {
+    /** 生成 access token，30 分钟有效 */
+    public String generateAccessToken(String username, String role) {
+        return buildToken(username, role, "access", accessExpirationMs);
+    }
+
+    /** 生成 refresh token，7 天有效 */
+    public String generateRefreshToken(String username, String role) {
+        return buildToken(username, role, "refresh", refreshExpirationMs);
+    }
+
+    private String buildToken(String username, String role, String type, long expirationMs) {
         Date now = new Date();
         return Jwts.builder()
                 .subject(username)
                 .claim("role", role)
+                .claim("type", type)
                 .issuedAt(now)
                 .expiration(new Date(now.getTime() + expirationMs))
                 .signWith(key)
@@ -56,5 +67,13 @@ public class JwtUtil {
 
     public String getUsername(String token) {
         return parseToken(token).getSubject();
+    }
+
+    public String getTokenType(String token) {
+        try {
+            return parseToken(token).get("type", String.class);
+        } catch (Exception e) {
+            return null;
+        }
     }
 }

@@ -76,7 +76,9 @@ public class FaviconService {
     /** 检查域名是否已有缓存 */
     private String findCached(String domain) {
         try {
-            for (String file : faviconDir.toFile().list()) {
+            String[] files = faviconDir.toFile().list();
+            if (files == null) return null;
+            for (String file : files) {
                 if (file.startsWith(domain.replaceAll("[^a-zA-Z0-9.-]", "_") + ".")) {
                     return "/favicons/" + file;
                 }
