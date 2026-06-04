@@ -37,7 +37,6 @@ a {
     color: inherit;
 }
 
-/* =================== 顶部Header =================== */
 .top-header {
     position: fixed;
     top: 0;
@@ -58,6 +57,8 @@ a {
     justify-content: space-between;
     padding: 0 20px;
     height: 100%;
+    position: relative;
+    z-index: 1;
 }
 
 .header-left {
@@ -66,18 +67,24 @@ a {
     flex-shrink: 0;
 }
 
-.header-center {
-    flex: 1;
-    display: flex;
-    justify-content: flex-start;
-    max-width: 680px;
-    margin: 0;
-}
-
 .header-right {
     display: flex;
     align-items: center;
     flex-shrink: 0;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.header-center {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    padding: 0 20px;
+    max-width: 800px;
 }
 
 .logo {
@@ -102,32 +109,51 @@ a {
     white-space: nowrap;
 }
 
-.header-actions {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
+/* 通用按钮样式（与搜索按钮统一） */
 .header-btn {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 6px 14px;
-    font-size: 13px;
-    border-radius: 6px;
-    transition: all 0.2s;
+    justify-content: center;
+    gap: 6px;
+    height: 44px;
+    padding: 0 18px;
+    font-size: 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background: var(--card-bg);
+    color: var(--text-secondary);
     cursor: pointer;
-    border: none;
-    background: none;
-    color: var(--text-primary);
+    transition: all 0.2s;
+    box-shadow: none;
 }
 
 .header-btn:hover {
-    background: rgba(0,0,0,0.06);
-    color: var(--text-primary);
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--card-bg);
 }
 
-/* Header 搜索框 */
+/* Header 搜索按钮（图标） */
+.header-search-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background: var(--card-bg);
+    color: var(--text-secondary);
+    font-size: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.header-search-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+/* Header 搜索框（弹窗触发） */
 .header-search-box {
     display: flex;
     align-items: center;
@@ -139,6 +165,7 @@ a {
     transition: box-shadow 0.2s, border-color 0.2s;
     cursor: pointer;
     width: 100%;
+    max-width: 800px;
     box-shadow: 0 1px 4px rgba(0,0,0,.06);
 }
 .header-search-box:hover {
@@ -147,13 +174,13 @@ a {
 }
 .header-search-box i {
     color: var(--text-secondary);
-    font-size: 17px;
+    font-size: 15px;
+    margin-right: 8px;
     flex-shrink: 0;
 }
 .header-search-box span {
     color: var(--text-secondary);
     font-size: 14px;
-    margin-left: 8px;
 }
 
 /* 搜索弹窗 */
@@ -217,13 +244,40 @@ a {
     color: #fff;
 }
 
+/* 通用按钮样式（与搜索按钮统一） */
+.header-btn,
 .my-btn {
-    border: 1px solid var(--primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 44px;
+    padding: 0 18px;
+    font-size: 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background: var(--card-bg);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: none;
+}
+
+.header-btn:hover,
+.my-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--card-bg);
+}
+
+/* 主色按钮（如新建书签） */
+.my-btn {
+    border-color: var(--primary);
     color: var(--primary);
 }
 
 .my-btn:hover {
-    background: var(--sidebar-active);
+    background: var(--primary);
     color: #fff;
 }
 
@@ -354,6 +408,7 @@ a {
     align-items: flex-start;
     justify-content: flex-start;
     padding-top: 25vh;
+    margin-left: 160px;
 }
 
 .main-content.sidebar-mini {
@@ -1132,7 +1187,25 @@ a {
 }
 
 /* =================== 响应式 =================== */
+
+/* 1400px 以下：缩小搜索栏右边距 */
+@media (max-width: 1400px) {
+    .home-search-row {
+        margin-right: 100px;
+    }
+}
+
 @media (max-width: 1200px) {
+    .main-content > .content-wrapper {
+        margin-left: 80px;
+    }
+    .home-search-row {
+        margin-right: 40px;
+    }
+    .home-shortcut-links {
+        margin-left: 40px;
+        max-width: 400px;
+    }
     .hero-section {
         grid-template-columns: repeat(2, 1fr);
     }
@@ -1194,7 +1267,26 @@ a {
         padding: 16px 14px 0;
     }
 
+    .main-content > .content-wrapper {
+        margin-left: 0;
+        padding-top: 10vh;
+    }
+
     .content-wrapper {
+        max-width: 100%;
+    }
+
+    .home-search-row {
+        margin-right: 0;
+    }
+
+    .home-shortcut-links {
+        margin-left: 0;
+        margin-top: 20px;
+        max-width: 100%;
+    }
+
+    .search-shortcut-area {
         max-width: 100%;
     }
 
@@ -1214,6 +1306,18 @@ a {
 
     .resource-card {
         padding: 12px 14px;
+    }
+
+    .home-shortcut-links {
+        margin-top: 12px;
+        gap: 2px;
+    }
+    .home-shortcut-links a {
+        padding: 4px 10px;
+        font-size: 12px;
+    }
+    .main-content > .content-wrapper {
+        padding-top: 5vh;
     }
 }
 
@@ -1729,6 +1833,7 @@ mark.search-highlight {
     border-radius: 14px;
     overflow: hidden;
     box-shadow: 0 4px 20px rgba(0,0,0,.08);
+    margin-right: 292px;
 }
 .home-search-engine {
     height: 50px;
@@ -1777,6 +1882,8 @@ mark.search-highlight {
     justify-content: flex-start;
     gap: 4px;
     max-width: 500px;
+    margin-top: 39px;
+    margin-left: 79px;
 }
 .home-shortcut-links a {
     display: inline-flex;
@@ -1896,4 +2003,9 @@ mark.search-highlight {
 }
 .folder-float-panel .float-empty {
     text-align: center; color: #999; font-size: 12px; padding: 24px 0;
+}
+
+.header-row.header-row-bottom {
+    margin-bottom: -20px;
+    margin-top: -39px;
 }

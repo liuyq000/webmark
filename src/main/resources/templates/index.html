@@ -8,6 +8,7 @@
     <link th:href="@{/webjars/bootstrap-icons/font/bootstrap-icons.css}" rel="stylesheet">
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%234f6ef7' d='M2 2v13l6-3 6 3V2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1z'/%3E%3C/svg%3E">
     <link th:href="@{/css/style.css(v=${#dates.createNow().getTime()})}" rel="stylesheet">
+    <link th:href="@{/css/drag-editor.css(v=${#dates.createNow().getTime()})}" rel="stylesheet">
     <style>
         #bmMgmtPanel .tree-children { display: none !important; }
         #bmMgmtPanel .tree-children.tree-expanded { display: block !important; }
@@ -58,23 +59,20 @@
                     <span>本地书签</span>
                 </a>
             </div>
-            <div class="header-center">
-                <div class="header-search-box" id="headerSearchBtn" onclick="openSearchModal()" title="搜索书签">
-                    <i class="bi bi-search"></i>
-                    <span>搜索书签...</span>
-                </div>
-            </div>
             <div class="header-right">
-                <div class="header-actions">
-                    <div sec:authorize="isAuthenticated()">
-                        <a class="header-btn my-btn" href="javascript:;" onclick="openBookmarkModal()"><i class="bi bi-plus-circle"></i> 新建书签</a>
-                    </div>
-                    <div sec:authorize="!isAuthenticated()" class="d-flex align-items-center gap-2">
-                        <a class="header-btn" th:href="@{/login}">登录</a>
-                        <a class="header-btn my-btn" th:href="@{/register}">注册</a>
-                    </div>
-                    <!-- 用户下拉菜单 -->
-                    <div sec:authorize="isAuthenticated()" id="userDropdown" class="header-user-dropdown">
+                <!-- 搜索按钮（始终显示） -->
+                <button class="header-search-btn" onclick="openSearchModal()" title="搜索书签">
+                    <i class="bi bi-search"></i>
+                </button>
+                <!-- 登录前：登录+注册 -->
+                <div sec:authorize="!isAuthenticated()" class="header-actions">
+                    <a class="header-btn" th:href="@{/login}">登录</a>
+                    <a class="header-btn my-btn" th:href="@{/register}">注册</a>
+                </div>
+                <!-- 登录后：新建书签+用户名 -->
+                <div sec:authorize="isAuthenticated()" class="header-actions">
+                    <a class="header-btn my-btn" href="javascript:;" onclick="openBookmarkModal()"><i class="bi bi-plus-circle"></i> 新建书签</a>
+                    <div id="userDropdown" class="header-user-dropdown">
                         <button type="button" id="userDropdownToggle" class="header-btn user-btn" style="background:none;border:none;display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;">
                             <i class="bi bi-person-circle" style="font-size:16px;"></i>
                             <span sec:authentication="name" style="max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">admin</span>
@@ -94,7 +92,6 @@
                     </div>
                 </div>
             </div>
-        </div>
     </header>
     <div class="layout-wrapper">
         <!-- 左侧文件夹列表 -->
@@ -190,6 +187,7 @@
 
     <script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
     <script th:src="@{/js/main.js}"></script>
+    <script th:src="@{/js/drag-editor.js}"></script>
     <script>
     // ========== 管理模式切换（均改为弹窗） ==========
     var bmMgmtBsModal, userMgmtBsModal, collectBsModal;

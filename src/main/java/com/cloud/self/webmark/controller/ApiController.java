@@ -10,6 +10,8 @@ import com.cloud.self.webmark.service.FolderService;
 import com.cloud.self.webmark.service.UserService;
 import com.cloud.self.webmark.store.PageResult;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -25,6 +27,8 @@ import java.util.Map;
 @RequestMapping("/api")
 @RequiredArgsConstructor
 public class ApiController {
+
+    private static final Logger log = LoggerFactory.getLogger(ApiController.class);
 
     private final BookmarkService bookmarkService;
     private final FolderService folderService;
@@ -275,6 +279,108 @@ public class ApiController {
             }
         }
         return ResponseEntity.ok(Map.of("success", true));
+    }
+
+    /**
+     * 保存 CSS 变更（拖拽编辑器用）
+     */
+    @PostMapping("/admin/save-css")
+    public ResponseEntity<?> saveCssChanges(@RequestBody Map<String, Object> body) {
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Map<String, String>> changes = (Map<String, Map<String, String>>) body.get("changes");
+
+            java.nio.file.Path srcCss = java.nio.file.Paths.get(
+                System.getProperty("user.dir"), "src", "main", "resources", "static", "css", "style.css");
+            java.nio.file.Path targetCss = java.nio.file.Paths.get(
+                System.getProperty("user.dir"), "target", "classes", "static", "css", "style.css");
+
+            if (!java.nio.file.Files.exists(srcCss)) {
+                return ResponseEntity.badRequest().body(Map.of("message", "style.css 文件不存在"));
+            }
+
+            String content = java.nio.file.Files.readString(srcCss);
+            StringBuilder newContent = new StringBuilder(content);
+
+            for (Map.Entry<String, Map<String, String>> entry : changes.entrySet()) {
+                String selector = entry.getKey();
+                Map<String, String> props = entry.getValue();
+
+                int blockStart = findCssBlockStart(newContent.toString(), selector);
+                if (blockStart >= 0) {
+                    int blockEnd = findCssBlockEnd(newContent.toString(), blockStart);
+                    String originalBlock = newContent.substring(blockStart, blockEnd);
+                    String updatedBlock = updateCssBlock(originalBlock, props);
+                    String before = newContent.substring(0, blockStart);
+                    String after = newContent.substring(blockEnd);
+                    newContent = new StringBuilder(before + updatedBlock + after);
+                } else {
+                    StringBuilder newBlock = new StringBuilder();
+                    newBlock.append("\n").append(selector).append(" {\n");
+                    for (Map.Entry<String, String> prop : props.entrySet()) {
+                        newBlock.append("    ").append(prop.getKey()).append(": ").append(prop.getValue()).append(";\n");
+                    }
+                    newBlock.append("}\n");
+                    newContent.append(newBlock);
+                }
+            }
+
+            java.nio.file.Files.writeString(srcCss, newContent.toString());
+            java.nio.file.Files.createDirectories(targetCss.getParent());
+            java.nio.file.Files.writeString(targetCss, newContent.toString());
+            log.info("已保存 {} 个选择器的 CSS 变更", changes.size());
+            return ResponseEntity.ok(Map.of("success", true));
+
+        } catch (Exception e) {
+            log.error("保存 CSS 变更失败: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(Map.of("message", "保存失败: " + e.getMessage()));
+        }
+    }
+
+    private int findCssBlockStart(String content, String selector) {
+        int idx = content.indexOf(selector + " {");
+        if (idx >= 0) return idx;
+        return -1;
+    }
+
+    private int findCssBlockEnd(String content, int start) {
+        int depth = 0;
+        boolean started = false;
+        for (int i = start; i < content.length(); i++) {
+            if (content.charAt(i) == '{') { started = true; depth++; }
+            if (content.charAt(i) == '}') { depth--; if (depth <= 0 && started) return i + 1; }
+        }
+        return content.length();
+    }
+
+    private String updateCssBlock(String block, Map<String, String> props) {
+        String result = block;
+        for (Map.Entry<String, String> prop : props.entrySet()) {
+            String propName = prop.getKey();
+            String propValue = prop.getValue();
+            int propIdx = result.indexOf(propName + ":");
+            if (propIdx >= 0) {
+                int valStart = result.indexOf(":", propIdx) + 1;
+                int valEnd = findCssValueEnd(result, valStart);
+                String oldDecl = result.substring(propIdx, valEnd);
+                String newDecl = propName + ": " + propValue;
+                result = result.replace(oldDecl, newDecl);
+            } else {
+                int insertPos = result.lastIndexOf('}');
+                result = result.substring(0, insertPos) + "    " + propName + ": " + propValue + ";\n" + result.substring(insertPos);
+            }
+        }
+        return result;
+    }
+
+    private int findCssValueEnd(String block, int start) {
+        int i = start;
+        while (i < block.length()) {
+            char c = block.charAt(i);
+            if (c == ';') return i + 1;
+            i++;
+        }
+        return block.length();
     }
 
 }
