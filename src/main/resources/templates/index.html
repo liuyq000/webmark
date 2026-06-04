@@ -7,7 +7,7 @@
     <link th:href="@{/webjars/bootstrap/css/bootstrap.min.css}" rel="stylesheet">
     <link th:href="@{/webjars/bootstrap-icons/font/bootstrap-icons.css}" rel="stylesheet">
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%234f6ef7' d='M2 2v13l6-3 6 3V2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1z'/%3E%3C/svg%3E">
-    <link th:href="@{/css/style.css}" rel="stylesheet">
+    <link th:href="@{/css/style.css(v=${#dates.createNow().getTime()})}" rel="stylesheet">
     <style>
         #bmMgmtPanel .tree-children { display: none !important; }
         #bmMgmtPanel .tree-children.tree-expanded { display: block !important; }
@@ -57,12 +57,11 @@
                     <i class="bi bi-bookmark-star-fill"></i>
                     <span>本地书签</span>
                 </a>
-                <button class="header-btn sidebar-toggle-desktop" id="sidebarToggleDesktop" title="切换侧边栏"><i class="bi bi-layout-sidebar-inset"></i></button>
             </div>
             <div class="header-center">
-                <div class="header-search-inline" id="headerSearchInline" title="搜索">
+                <div class="header-search-box" id="headerSearchBtn" onclick="openSearchModal()" title="搜索书签">
                     <i class="bi bi-search"></i>
-                    <input type="text" placeholder="搜索资源名称、描述..." readonly>
+                    <span>搜索书签...</span>
                 </div>
             </div>
             <div class="header-right">
@@ -70,75 +69,68 @@
                     <div sec:authorize="isAuthenticated()">
                         <a class="header-btn my-btn" href="javascript:;" onclick="openBookmarkModal()"><i class="bi bi-plus-circle"></i> 新建书签</a>
                     </div>
+                    <div sec:authorize="!isAuthenticated()" class="d-flex align-items-center gap-2">
+                        <a class="header-btn" th:href="@{/login}">登录</a>
+                        <a class="header-btn my-btn" th:href="@{/register}">注册</a>
+                    </div>
+                    <!-- 用户下拉菜单 -->
+                    <div sec:authorize="isAuthenticated()" id="userDropdown" class="header-user-dropdown">
+                        <button type="button" id="userDropdownToggle" class="header-btn user-btn" style="background:none;border:none;display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;">
+                            <i class="bi bi-person-circle" style="font-size:16px;"></i>
+                            <span sec:authentication="name" style="max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">admin</span>
+                            <i class="bi bi-caret-down-fill" id="userDropdownArrow" style="font-size:10px;transition:transform 0.2s"></i>
+                        </button>
+                        <div id="userDropdownMenu" class="user-dropdown-menu">
+                            <a href="javascript:;" onclick="showBmMgmt();closeUserDropdown();"><i class="bi bi-bookmarks"></i>书签管理</a>
+                            <a href="javascript:;" onclick="showUserMgmt();closeUserDropdown();"><i class="bi bi-person-gear"></i>用户管理</a>
+                            <a href="javascript:;" onclick="showCollectTool();closeUserDropdown();"><i class="bi bi-globe"></i>网页收集工具</a>
+                            <a href="javascript:;" onclick="toggleTheme();closeUserDropdown();"><i class="bi bi-moon-stars-fill" id="themeToggleIcon"></i><span id="themeToggleText">暗色主题</span></a>
+                            <form th:action="@{/logout}" method="post" style="margin:0;">
+                                <button type="submit" style="width:100%;background:none;border:none;padding:8px 16px;font-size:13px;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px;color:inherit;">
+                                    <i class="bi bi-box-arrow-right" style="font-size:13px;"></i>退出登录
+                                </button>
+                            </form>
+                        </div>
+                    </div>
                 </div>
-                <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
             </div>
         </div>
     </header>
     <div class="layout-wrapper">
-        <!-- 左侧侧边栏 - 从数据库动态渲染 -->
-        <aside class="sidebar" id="sidebar">
-            <nav class="sidebar-nav">
-                <!-- 动态文件夹栏目 -->
-                <div th:each="folder : ${folderTree}" class="sidebar-channel"
-                     th:classappend="${folder.id == folderId} ? 'open active' : ''"
-                     th:attr="data-folder-id=${folder.id}, data-tooltip=${folder.name} + ' ' + ${folder.nameEn}">
-                    <div class="channel-title" data-toggle="channel" th:attr="data-folder-id=${folder.id}">
-                        <i class="bi channel-icon" th:classappend="${folder.icon != null ? folder.icon : 'bi-folder'}"></i>
-                        <span class="channel-text" th:text="${folder.name}">栏目名</span>
-                        <small class="channel-text" th:text="${folder.nameEn}">English</small>
-                        <i class="bi bi-chevron-down channel-arrow"></i>
+        <!-- 左侧文件夹列表 -->
+        <aside class="sidebar-folder" id="sidebarFolder" onmouseleave="hideFolderFloat()">
+            <div class="sidebar-folder-list">
+                <th:block th:each="folder : ${folderTree}">
+                    <div class="sidebar-folder-item" th:attr="data-folder-id=${folder.id}"
+                         onmouseenter="showFolderFloat(this)">
+                        <i class="bi sidebar-folder-icon" th:classappend="${folder.icon != null ? folder.icon : 'bi-folder-fill'}"></i>
+                        <span class="sidebar-folder-name" th:text="${folder.name}">栏目</span>
+                        <div class="folder-float-content" style="display:none">
+                            <th:block th:if="${allGrouped != null and allGrouped.containsKey(folder.id)}" th:with="subs=${allGrouped[folder.id]}">
+                                <th:block th:each="sub : ${subs}">
+                                    <div class="sub-folder-group">
+                                        <div class="sub-folder-title" th:text="${sub.key}"></div>
+                                        <div class="sub-folder-links">
+                                            <a th:each="bm : ${sub.value}" th:href="${bm.url}" target="_blank" rel="noopener" class="bm-link">
+                                                <img th:if="${bm.logoUrl != null and !bm.logoUrl.isEmpty()}" th:src="${bm.logoUrl}" class="bm-link-icon" onerror="this.style.display='none'">
+                                                <span th:if="${bm.logoUrl == null or bm.logoUrl.isEmpty()}" class="bm-link-fallback" th:text="${#strings.substring(bm.title, 0, 1)}">W</span>
+                                                <span class="bm-link-title" th:text="${bm.title}">标题</span>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </th:block>
+                            </th:block>
+                            <div th:if="${allGrouped == null or !allGrouped.containsKey(folder.id)}" class="float-empty">暂无书签</div>
+                        </div>
                     </div>
-                    <ul class="channel-list">
-                        <li th:each="child : ${folder.children}">
-                            <a href="javascript:;" th:attr="data-folder-id=${folder.id}, data-section-name=${child.name}"
-                               th:text="${child.name}" class="sub-nav-link">子栏目</a>
-                            <ul th:if="${child.children != null and !child.children.isEmpty()}" class="channel-list sub-channel-list">
-                                <li th:each="grandchild : ${child.children}">
-                                    <a href="javascript:;" th:attr="data-folder-id=${folder.id}, data-section-name=${grandchild.name}"
-                                       th:text="${grandchild.name}" class="sub-nav-link">三级栏目</a>
-                                </li>
-                            </ul>
-                        </li>
-                    </ul>
-                </div>
-            </nav>
-            <!-- 用户下拉菜单（登录后显示）固定在侧边栏底部 -->
-            <div sec:authorize="isAuthenticated()" id="userDropdown">
-                <div id="userDropdownMenu" style="display:none;overflow:hidden;">
-                    <ul style="list-style:none;padding:0;margin:0;border-bottom:1px solid rgba(255,255,255,0.08);">
-                        <li><a href="javascript:;" onclick="showBmMgmt();closeUserDropdown();" style="display:block;padding:10px 16px 10px 40px;color:var(--sidebar-text);font-size:13px;transition:all 0.15s;border-left:3px solid transparent"><i class="bi bi-bookmarks" style="margin-right:8px;font-size:13px"></i>书签管理</a></li>
-                        <li><a href="javascript:;" onclick="showUserMgmt();closeUserDropdown();" style="display:block;padding:10px 16px 10px 40px;color:var(--sidebar-text);font-size:13px;transition:all 0.15s;border-left:3px solid transparent"><i class="bi bi-person-gear" style="margin-right:8px;font-size:13px"></i>用户管理</a></li>
-                        <li><a href="javascript:;" onclick="showCollectTool();closeUserDropdown();" style="display:block;padding:10px 16px 10px 40px;color:var(--sidebar-text);font-size:13px;transition:all 0.15s;border-left:3px solid transparent"><i class="bi bi-globe" style="margin-right:8px;font-size:13px"></i>网页收集工具</a></li>
-                        <li><a href="javascript:;" onclick="toggleTheme();closeUserDropdown();" style="display:block;padding:10px 16px 10px 40px;color:var(--sidebar-text);font-size:13px;transition:all 0.15s;border-left:3px solid transparent"><i class="bi bi-moon-stars-fill" id="themeToggleIcon" style="margin-right:8px;font-size:13px"></i><span id="themeToggleText">暗色主题</span></a></li>
-                        <li>
-                            <form th:action="@{/logout}" method="post" style="margin:0;">
-                                <button type="submit" style="width:100%;background:none;border:none;color:var(--sidebar-text);padding:10px 16px 10px 40px;font-size:13px;cursor:pointer;text-align:left;border-left:3px solid transparent;display:flex;align-items:center;">
-                                    <i class="bi bi-box-arrow-right" style="margin-right:8px;font-size:13px"></i>退出登录
-                                </button>
-                            </form>
-                        </li>
-                    </ul>
-                </div>
-                <button type="button" id="userDropdownToggle" style="width:100%;background:none;border:none;color:var(--sidebar-text);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-size:14px;">
-                    <span style="display:flex;align-items:center;overflow:hidden;">
-                        <i class="bi bi-person-circle" style="margin-right:8px;font-size:16px;flex-shrink:0"></i>
-                        <span th:text="${user.userName}" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px">admin</span>
-                    </span>
-                    <i class="bi bi-caret-up-fill" id="userDropdownArrow" style="font-size:12px;flex-shrink:0;transition:transform 0.2s"></i>
-                </button>
-            </div>
-            <!-- 未登录：左侧底部登录入口 -->
-            <div sec:authorize="!isAuthenticated()" id="guestLoginBar">
-                <a th:href="@{/login}" style="display:flex;align-items:center;padding:10px 16px;color:var(--sidebar-text);text-decoration:none;font-size:13px;transition:background 0.15s;">
-                    <i class="bi bi-person-circle" style="margin-right:8px;font-size:16px"></i>
-                    <span>登录 / 注册</span>
-                </a>
+                </th:block>
             </div>
         </aside>
-        <!-- 右侧主内容区 -->
-        <main class="main-content">
+        <main class="main-content" style="margin-left:0;max-width:none">
             <div class="content-wrapper">
+
+                <!-- 文件夹浮层面板 -->
+                <div class="folder-float-panel" id="folderFloatPanel" onmouseenter="cancelHideFolderFloat()" onmouseleave="hideFolderFloat()"></div>
 
                 <!-- ========== 浏览模式 ========== -->
                 <div th:replace="fragments/browse-panel :: browsePanel"></div>
@@ -160,27 +152,6 @@
         </main>
     </div>
 
-    <!-- 移动端遮罩 -->
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
-
-    <!-- 搜索浮层 -->
-    <div class="search-overlay" id="searchOverlay">
-        <div class="search-overlay-mask"></div>
-        <div class="search-overlay-content">
-            <div class="search-overlay-bar">
-                <i class="bi bi-search search-overlay-icon"></i>
-                <input type="text" id="searchOverlayInput" placeholder="搜索资源名称、描述、标签..." autocomplete="off">
-                <button class="search-overlay-close" id="searchOverlayClose"><i class="bi bi-x-lg"></i></button>
-            </div>
-            <div class="search-overlay-body" id="searchOverlayBody">
-                <div class="search-overlay-empty">
-                    <i class="bi bi-search"></i>
-                    <p>输入关键词开始搜索</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- ========== 书签弹窗组 ========== -->
     <div th:replace="fragments/bookmark-modals :: bookmarkModals"></div>
 
@@ -189,6 +160,27 @@
 
     <!-- ========== 工具弹窗组 ========== -->
     <div th:replace="fragments/tool-modals :: toolModals"></div>
+
+    <!-- ========== 搜索弹窗 ========== -->
+    <div class="modal fade" id="searchModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-search"></i> 搜索书签</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="search-modal-box mb-3">
+                        <i class="bi bi-search"></i>
+                        <input type="text" id="searchModalInput" placeholder="输入关键词搜索书名、描述、标签..." autocomplete="off" oninput="doModalSearch()">
+                    </div>
+                    <div id="searchModalResults">
+                        <div class="text-center text-muted py-5">输入关键词开始搜索</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script th:inline="javascript">
     /*<![CDATA[*/
@@ -199,53 +191,73 @@
     <script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
     <script th:src="@{/js/main.js}"></script>
     <script>
-    // ========== 管理模式切换 ==========
+    // ========== 管理模式切换（均改为弹窗） ==========
+    var bmMgmtBsModal, userMgmtBsModal, collectBsModal;
     function showBmMgmt() {
-        var sidebar = document.getElementById('sidebar');
-        var sidebarW = sidebar && sidebar.classList.contains('mini') ? 60 : 220;
-        var mgmtPanel = document.getElementById('bmMgmtPanel');
-        if (mgmtPanel) {
-            mgmtPanel.style.left = sidebarW + 'px';
-            mgmtPanel.style.display = 'block';
-        }
-        document.getElementById('bmBrowsePanel').style.display = 'none';
-        document.getElementById('userMgmtPanel').style.display = 'none';
-        document.getElementById('collectToolPanel').style.display = 'none';
-        loadBookmarks();
+        var el = document.getElementById('bmMgmtModal');
+        if (!bmMgmtBsModal && el) bmMgmtBsModal = new bootstrap.Modal(el);
+        if (bmMgmtBsModal) bmMgmtBsModal.show();
+        mgrLoadBookmarks();
     }
     function hideBmMgmt() {
-        document.getElementById('bmBrowsePanel').style.display = '';
-        document.getElementById('bmMgmtPanel').style.display = 'none';
-        document.getElementById('userMgmtPanel').style.display = 'none';
-        document.getElementById('collectToolPanel').style.display = 'none';
+        if (bmMgmtBsModal) bmMgmtBsModal.hide();
     }
-
     function showUserMgmt() {
-        var sidebar = document.getElementById('sidebar');
-        var sidebarW = sidebar && sidebar.classList.contains('mini') ? 60 : 220;
-        var panel = document.getElementById('userMgmtPanel');
-        if (panel) {
-            panel.style.left = sidebarW + 'px';
-            panel.style.display = 'block';
-        }
-        document.getElementById('bmBrowsePanel').style.display = 'none';
-        document.getElementById('bmMgmtPanel').style.display = 'none';
-        document.getElementById('collectToolPanel').style.display = 'none';
+        var el = document.getElementById('userMgmtModal');
+        if (!userMgmtBsModal && el) userMgmtBsModal = new bootstrap.Modal(el);
+        if (userMgmtBsModal) userMgmtBsModal.show();
         loadUserList(1);
     }
-
     function showCollectTool() {
-        var sidebar = document.getElementById('sidebar');
-        var sidebarW = sidebar && sidebar.classList.contains('mini') ? 60 : 220;
-        var panel = document.getElementById('collectToolPanel');
-        if (panel) {
-            panel.style.left = sidebarW + 'px';
-            panel.style.display = 'block';
-        }
-        document.getElementById('bmBrowsePanel').style.display = 'none';
-        document.getElementById('bmMgmtPanel').style.display = 'none';
-        document.getElementById('userMgmtPanel').style.display = 'none';
+        var el = document.getElementById('collectToolModal');
+        if (!collectBsModal && el) collectBsModal = new bootstrap.Modal(el);
+        if (collectBsModal) collectBsModal.show();
     }
+
+    // ========== 搜索弹窗 ==========
+    var searchBsModal;
+    var searchTimer = null;
+    function openSearchModal() {
+        var el = document.getElementById('searchModal');
+        if (!searchBsModal && el) searchBsModal = new bootstrap.Modal(el);
+        if (searchBsModal) {
+            searchBsModal.show();
+            setTimeout(function() {
+                document.getElementById('searchModalInput').focus();
+            }, 150);
+        }
+    }
+    function doModalSearch() {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(async function() {
+            var keyword = document.getElementById('searchModalInput').value.trim();
+            var container = document.getElementById('searchModalResults');
+            if (!keyword) {
+                container.innerHTML = '<div class="text-center text-muted py-5">输入关键词开始搜索</div>';
+                return;
+            }
+            container.innerHTML = '<div class="text-center text-muted py-3"><div class="spinner-border spinner-border-sm me-1"></div>搜索中...</div>';
+            try {
+                var resp = await fetch('/api/search?key=' + encodeURIComponent(keyword));
+                var data = await resp.json();
+                var results = data.results || [];
+                if (results.length === 0) {
+                    container.innerHTML = '<div class="text-center text-muted py-5">未找到相关书签</div>';
+                    return;
+                }
+                container.innerHTML = '<div class="text-muted small mb-2">找到 ' + results.length + ' 条结果</div>' +
+                    results.map(function(b) {
+                        return '<a href="' + escapeAttr(b.url) + '" target="_blank" class="search-result-item">' +
+                            (b.logoUrl ? '<img src="' + escapeAttr(b.logoUrl) + '" class="search-result-icon" onerror="this.style.display=\'none\'">' : '<span class="search-result-fb">' + escapeHtml(b.title ? b.title.charAt(0) : '') + '</span>') +
+                            '<div><div class="search-result-title">' + highlightText(b.title || '', keyword) + '</div>' +
+                            '<div class="search-result-url text-muted">' + escapeHtml(b.url || '') + '</div></div></a>';
+                    }).join('');
+            } catch(e) {
+                container.innerHTML = '<div class="text-center text-danger py-3">搜索失败，请重试</div>';
+            }
+        }, 300);
+    }
+    function escapeAttr(s) { return (s || '').replace(/"/g, '&quot;'); }
 
     // ========== 用户列表管理 ==========
     var userPageNum = 1, userPageSize = 10, userKeyword = '';
@@ -680,14 +692,14 @@
 
     // ========== 管理面板全局变量 ==========
     var currentFolderId = null;
-    var currentPage = 1;
-    var currentSize = 10;
-    var currentSearchKeyword = '';
-    var currentAbort = null;
-    var deleteBookmarkId = null;
-    var deleteFolderId = null;
-    var draggedRow = null;
-    var draggedFolder = null;
+    var mgrCurrentPage = 1;
+    var mgrCurrentSize = 10;
+    var mgrCurrentKeyword = '';
+    var mgrCurrentAbort = null;
+    var mgrDeleteBookmarkId = null;
+    var mgrDeleteFolderId = null;
+    var mgrDraggedRow = null;
+    var mgrDraggedFolder = null;
 
     // ========== 选中文件夹 ==========
     function selectFolder(el) {
@@ -695,8 +707,8 @@
         el.classList.add('active');
         var fid = el.getAttribute('data-folder-id');
         currentFolderId = fid ? Number(fid) : null;
-        currentPage = 1;
-        loadBookmarks();
+        mgrCurrentPage = 1;
+        mgrLoadBookmarks();
     }
 
     function toggleTree(icon) {
@@ -710,19 +722,19 @@
     }
 
     // ========== 加载书签列表 ==========
-    async function loadBookmarks() {
-        if (currentAbort) currentAbort.abort();
+    async function mgrLoadBookmarks() {
+        if (mgrCurrentAbort) mgrCurrentAbort.abort();
         var ac = new AbortController();
-        currentAbort = ac;
+        mgrCurrentAbort = ac;
         var sig = ac.signal;
-        var kwEl = document.getElementById('searchKeyword');
-        var ptEl = document.getElementById('searchPublicType');
+        var kwEl = document.getElementById('mgrSearchKeyword');
+        var ptEl = document.getElementById('mgrSearchPublicType');
         var keyword = kwEl ? kwEl.value.trim() : '';
-        currentSearchKeyword = keyword;
+        mgrCurrentKeyword = keyword;
         var publicType = ptEl ? ptEl.value : '';
-        var cf = currentFolderId, cp = currentPage;
+        var cf = currentFolderId, cp = mgrCurrentPage;
 
-        var url = '/api/admin/bookmarks?page=' + currentPage + '&size=' + currentSize;
+        var url = '/api/admin/bookmarks?page=' + mgrCurrentPage + '&size=' + mgrCurrentSize;
         if (currentFolderId != null) url += '&folderId=' + currentFolderId;
         if (keyword) url += '&keyword=' + encodeURIComponent(keyword);
         if (publicType) url += '&publicType=' + publicType;
@@ -730,20 +742,20 @@
         try {
             var resp = await fetch(url, { signal: sig });
             var data = await resp.json();
-            if (currentPage !== cp || currentFolderId !== cf) { return; }
-            renderMgrTable(data);
-            renderMgrPagination(data);
+            if (mgrCurrentPage !== cp || currentFolderId !== cf) { return; }
+            mgrRenderBookmarkTable(data);
+            mgrRenderPagination(data);
         } catch(e) {
             if (e.name === 'AbortError') return;
-            var tbody = document.getElementById('bookmarkTableBody');
+            var tbody = document.getElementById('mgrBookmarkTableBody');
             if (tbody) tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">加载失败: ' + e.message + '</td></tr>';
         }
     }
 
-    function renderMgrTable(data) {
-        var tbody = document.getElementById('bookmarkTableBody');
+    function mgrRenderBookmarkTable(data) {
+        var tbody = document.getElementById('mgrBookmarkTableBody');
         var records = data.records || [];
-        var countEl = document.getElementById('bookmarkCount');
+        var countEl = document.getElementById('mgrBookmarkCount');
         if (countEl) countEl.textContent = '共 ' + (data.total || 0) + ' 条';
         if (records.length === 0) {
             tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">暂无书签数据</td></tr>';
@@ -751,24 +763,24 @@
         }
         var html = records.map(function(b) {
             try {
-                return '<tr draggable="true" data-id="' + b.id + '" data-sort="' + (b.sortOrder || 0) + '" ondragstart="tableDragStart(event)" ondragend="tableDragEnd(event)">'
+                return '<tr draggable="true" data-id="' + b.id + '" data-sort="' + (b.sortOrder || 0) + '" ondragstart="mgrTableDragStart(event)" ondragend="mgrTableDragEnd(event)">'
                     + '<td><i class="bi bi-grip-vertical text-muted" style="cursor:grab"></i></td>'
                     + '<td>' + b.id + '</td>'
-                    + '<td>' + (b.logoUrl ? '<img src="' + escapeAttr(b.logoUrl) + '" class="bookmark-logo" onerror="this.style.display=\'none\'">' : '') + highlightText(b.title || '', currentSearchKeyword) + '</td>'
-                    + '<td><a href="' + escapeAttr(b.url || '#') + '" target="_blank" class="text-decoration-none small">' + highlightText(abbreviate(b.url || '', 35), currentSearchKeyword) + '</a></td>'
+                    + '<td>' + (b.logoUrl ? '<img src="' + escapeAttr(b.logoUrl) + '" class="bookmark-logo" onerror="this.style.display=\'none\'">' : '') + highlightText(b.title || '', mgrCurrentKeyword) + '</td>'
+                    + '<td><a href="' + escapeAttr(b.url || '#') + '" target="_blank" class="text-decoration-none small">' + highlightText(abbreviate(b.url || '', 35), mgrCurrentKeyword) + '</a></td>'
                     + '<td>' + (b.publicType === 1 ? '<span class="badge bg-success">公开</span>' : '<span class="badge bg-warning text-dark">私密</span>') + '</td>'
                     + '<td class="small">' + formatTime(b.createTime) + '</td>'
                     + '<td>'
-                    + '<button class="btn btn-sm btn-outline-primary" onclick="openEditMgrBookmarkModal(this)" data-id="' + b.id + '" data-title="' + escapeAttr(b.title) + '" data-url="' + escapeAttr(b.url) + '" data-folder-id="' + (b.folderId || '') + '" data-description="' + escapeAttr(b.description || '') + '" data-logo-url="' + escapeAttr(b.logoUrl || '') + '" data-tags="' + escapeAttr(b.tags || '') + '" data-public-type="' + (b.publicType || 1) + '" title="编辑"><i class="bi bi-pencil"></i></button> '
-                    + '<button class="btn btn-sm btn-outline-danger" onclick="deleteMgrBookmark(' + b.id + ')" title="删除"><i class="bi bi-trash"></i></button>'
+                    + '<button class="btn btn-sm btn-outline-primary" onclick="mgrOpenEditBookmarkForm(this)" data-id="' + b.id + '" data-title="' + escapeAttr(b.title) + '" data-url="' + escapeAttr(b.url) + '" data-folder-id="' + (b.folderId || '') + '" data-description="' + escapeAttr(b.description || '') + '" data-logo-url="' + escapeAttr(b.logoUrl || '') + '" data-tags="' + escapeAttr(b.tags || '') + '" data-public-type="' + (b.publicType || 1) + '" title="编辑"><i class="bi bi-pencil"></i></button> '
+                    + '<button class="btn btn-sm btn-outline-danger" onclick="mgrDeleteBookmark(' + b.id + ')" title="删除"><i class="bi bi-trash"></i></button>'
                     + '</td></tr>';
             } catch(e) { return ''; }
         }).join('');
         tbody.innerHTML = html;
     }
 
-    function renderMgrPagination(data) {
-        var list = document.getElementById('paginationList');
+    function mgrRenderPagination(data) {
+        var list = document.getElementById('mgrPaginationList');
         if (!list) return;
         var total = data.pages || 1;
         var cur = data.current || 1;
@@ -787,51 +799,51 @@
         if (end < total - 1) pages.push('...');
         pages.push(total);
         var html = '';
-        html += '<li class="page-item ' + (cur <= 1 ? 'disabled' : '') + '"><a class="page-link" href="#" onclick="goMgrPage(' + (cur - 1) + ');return false">上一页</a></li>';
+        html += '<li class="page-item ' + (cur <= 1 ? 'disabled' : '') + '"><a class="page-link" href="#" onclick="mgrGoToPage(' + (cur - 1) + ');return false">上一页</a></li>';
         pages.forEach(function(p) {
             if (p === '...') { html += '<li class="page-item disabled"><a class="page-link">...</a></li>'; }
-            else { html += '<li class="page-item ' + (p === cur ? 'active' : '') + '"><a class="page-link" href="#" onclick="goMgrPage(' + p + ');return false">' + p + '</a></li>'; }
+            else { html += '<li class="page-item ' + (p === cur ? 'active' : '') + '"><a class="page-link" href="#" onclick="mgrGoToPage(' + p + ');return false">' + p + '</a></li>'; }
         });
-        html += '<li class="page-item ' + (cur >= total ? 'disabled' : '') + '"><a class="page-link" href="#" onclick="goMgrPage(' + (cur + 1) + ');return false">下一页</a></li>';
+        html += '<li class="page-item ' + (cur >= total ? 'disabled' : '') + '"><a class="page-link" href="#" onclick="mgrGoToPage(' + (cur + 1) + ');return false">下一页</a></li>';
         list.innerHTML = html;
     }
 
-    function goMgrPage(p) { currentPage = p; loadBookmarks(); }
-    function changePageSize(size) { currentSize = Number(size); currentPage = 1; loadBookmarks(); }
-    function searchBookmarks(e) { e.preventDefault(); currentPage = 1; loadBookmarks(); }
-    function resetSearch() {
-        var kw = document.getElementById('searchKeyword');
-        var pt = document.getElementById('searchPublicType');
+    function mgrGoToPage(p) { mgrCurrentPage = p; mgrLoadBookmarks(); }
+    function mgrChangePageSize(size) { mgrCurrentSize = Number(size); mgrCurrentPage = 1; mgrLoadBookmarks(); }
+    function mgrSearchBookmarks(e) { e.preventDefault(); mgrCurrentPage = 1; mgrLoadBookmarks(); }
+    function mgrResetSearch() {
+        var kw = document.getElementById('mgrSearchKeyword');
+        var pt = document.getElementById('mgrSearchPublicType');
         if (kw) kw.value = '';
         if (pt) pt.value = '';
-        currentPage = 1;
-        loadBookmarks();
+        mgrCurrentPage = 1;
+        mgrLoadBookmarks();
     }
 
     // ========== 表格行拖动排序 ==========
-    function tableDragStart(e) {
-        draggedRow = e.target.closest('tr');
+    function mgrTableDragStart(e) {
+        mgrDraggedRow = e.target.closest('tr');
         e.dataTransfer.effectAllowed = 'move';
         e.dataTransfer.setData('text/plain', '');
-        setTimeout(function() { if (draggedRow) draggedRow.classList.add('bg-light'); }, 0);
+        setTimeout(function() { if (mgrDraggedRow) mgrDraggedRow.classList.add('bg-light'); }, 0);
     }
-    function tableDragEnd(e) {
+    function mgrTableDragEnd(e) {
         var row = e.target.closest('tr');
         if (row) row.classList.remove('bg-light');
-        draggedRow = null;
+        mgrDraggedRow = null;
     }
 
     document.addEventListener('dragover', function(e) {
-        if (document.getElementById('bmMgmtPanel').style.display === 'none') return;
+        if (!document.getElementById('bmMgmtModal').classList.contains('show')) return;
         var tr = e.target.closest('tr[data-id]');
-        if (!tr || !draggedRow || tr === draggedRow) return;
+        if (!tr || !mgrDraggedRow || tr === mgrDraggedRow) return;
         e.preventDefault();
-        var tbody = document.getElementById('bookmarkTableBody');
+        var tbody = document.getElementById('mgrBookmarkTableBody');
         var rows = [...tbody.querySelectorAll('tr[data-id]')];
-        var fromIdx = rows.indexOf(draggedRow);
+        var fromIdx = rows.indexOf(mgrDraggedRow);
         var toIdx = rows.indexOf(tr);
         if (fromIdx < 0 || toIdx < 0) return;
-        if (fromIdx < toIdx) tr.after(draggedRow); else tr.before(draggedRow);
+        if (fromIdx < toIdx) tr.after(mgrDraggedRow); else tr.before(mgrDraggedRow);
         var allRows = [...tbody.querySelectorAll('tr[data-id]')];
         var updates = allRows.map(function(r, i) { return { id: Number(r.dataset.id), sortOrder: i + 1 }; });
         fetch('/api/admin/sort/bookmarks', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updates) }).catch(function() {});
@@ -864,20 +876,20 @@
     })();
 
     document.addEventListener('dragstart', function(e) {
-        if (document.getElementById('bmMgmtPanel').style.display === 'none') return;
+        if (!document.getElementById('bmMgmtModal').classList.contains('show')) return;
         var ti = e.target.closest('#bmMgmtPanel .tree-item[data-folder-id]');
         if (!ti || !ti.getAttribute('draggable')) return;
-        draggedFolder = ti;
+        mgrDraggedFolder = ti;
         e.dataTransfer.effectAllowed = 'move';
         e.dataTransfer.setData('text/plain', '');
     });
 
-    document.addEventListener('dragend', function(e) { draggedFolder = null; });
+    document.addEventListener('dragend', function(e) { mgrDraggedFolder = null; });
 
     document.addEventListener('dragover', function(e) {
-        if (document.getElementById('bmMgmtPanel').style.display === 'none') return;
+        if (!document.getElementById('bmMgmtModal').classList.contains('show')) return;
         var ti = e.target.closest('#bmMgmtPanel .tree-item[data-folder-id]');
-        if (!ti || !draggedFolder || ti === draggedFolder || draggedFolder.parentNode !== ti.parentNode) return;
+        if (!ti || !mgrDraggedFolder || ti === mgrDraggedFolder || mgrDraggedFolder.parentNode !== ti.parentNode) return;
         e.preventDefault();
         var parent = ti.parentNode;
         var items = [];
@@ -887,10 +899,10 @@
                 items.push(c);
             }
         }
-        var fromIdx = items.indexOf(draggedFolder);
+        var fromIdx = items.indexOf(mgrDraggedFolder);
         var toIdx = items.indexOf(ti);
         if (fromIdx < 0 || toIdx < 0) return;
-        if (fromIdx < toIdx) ti.after(draggedFolder); else ti.before(draggedFolder);
+        if (fromIdx < toIdx) ti.after(mgrDraggedFolder); else ti.before(mgrDraggedFolder);
         // 在 DOM 重排后重新获取当前实际顺序，修复此前用旧 items 计算排序导致保存的 sortOrder 不变的问题
         var currentItems = parent.querySelectorAll(':scope > .tree-item[data-folder-id]:not([data-folder-id=""])');
         var updates = Array.from(currentItems).map(function(r, i) { return { id: Number(r.getAttribute('data-folder-id')), sortOrder: i + 1 }; });
@@ -902,8 +914,8 @@
     // 树形选择器 - 管理工作
     function buildMgrBookmarkTreeSelector(selectedFolderId) {
         var dropdown = document.getElementById('mgrBookmarkTreeSelectDropdown');
-        var hidden = document.getElementById('mgrModalBookmarkFolderId');
-        var label = document.getElementById('mgrModalBookmarkFolderLabel');
+        var hidden = document.getElementById('mgrBookmarkFolderId');
+        var label = document.getElementById('mgrBookmarkFolderLabel');
         if (!dropdown || !hidden) return;
         function setLabel(v, t) { hidden.value = v; label.textContent = t; }
         if (!selectedFolderId) { setLabel('', '请选择文件夹'); }
@@ -944,47 +956,47 @@
     function toggleMgrBookmarkTreePanel() { var dd = document.getElementById('mgrBookmarkTreeSelectDropdown'); if (dd) dd.classList.toggle('open'); }
     function closeMgrBookmarkTreePanel() { var dd = document.getElementById('mgrBookmarkTreeSelectDropdown'); if (dd) dd.classList.remove('open'); }
 
-    function openCreateBookmarkModal() {
-        document.getElementById('mgrModalBookmarkId').value = '';
+    function mgrOpenAddBookmarkForm() {
+        document.getElementById('mgrBookmarkId').value = '';
         document.getElementById('mgrBookmarkModalTitle').textContent = '新建书签';
-        document.getElementById('mgrModalBookmarkTitle').value = '';
-        document.getElementById('mgrModalBookmarkUrl').value = '';
-        document.getElementById('mgrModalBookmarkDescription').value = '';
-        document.getElementById('mgrModalBookmarkLogoUrl').value = '';
-        document.getElementById('mgrModalBookmarkTags').value = '';
-        var r = document.querySelector('input[name="mgrModalBookmarkPublicType"][value="1"]');
+        document.getElementById('mgrBookmarkTitle').value = '';
+        document.getElementById('mgrBookmarkUrl').value = '';
+        document.getElementById('mgrBookmarkDescription').value = '';
+        document.getElementById('mgrBookmarkLogoUrl').value = '';
+        document.getElementById('mgrBookmarkTags').value = '';
+        var r = document.querySelector('input[name="mgrBookmarkPublicType"][value="1"]');
         if (r) r.checked = true;
         buildMgrBookmarkTreeSelector(currentFolderId || null);
         new bootstrap.Modal(document.getElementById('mgrBookmarkModal')).show();
     }
 
-    function openEditMgrBookmarkModal(btn) {
-        document.getElementById('mgrModalBookmarkId').value = btn.dataset.id;
+    function mgrOpenEditBookmarkForm(btn) {
+        document.getElementById('mgrBookmarkId').value = btn.dataset.id;
         document.getElementById('mgrBookmarkModalTitle').textContent = '编辑书签';
-        document.getElementById('mgrModalBookmarkTitle').value = btn.dataset.title || '';
-        document.getElementById('mgrModalBookmarkUrl').value = btn.dataset.url || '';
-        document.getElementById('mgrModalBookmarkDescription').value = btn.dataset.description || '';
-        document.getElementById('mgrModalBookmarkLogoUrl').value = btn.dataset.logoUrl || '';
-        document.getElementById('mgrModalBookmarkTags').value = btn.dataset.tags || '';
+        document.getElementById('mgrBookmarkTitle').value = btn.dataset.title || '';
+        document.getElementById('mgrBookmarkUrl').value = btn.dataset.url || '';
+        document.getElementById('mgrBookmarkDescription').value = btn.dataset.description || '';
+        document.getElementById('mgrBookmarkLogoUrl').value = btn.dataset.logoUrl || '';
+        document.getElementById('mgrBookmarkTags').value = btn.dataset.tags || '';
         var pt = btn.dataset.publicType || '1';
-        var pr = document.querySelector('input[name="mgrModalBookmarkPublicType"][value="' + pt + '"]');
+        var pr = document.querySelector('input[name="mgrBookmarkPublicType"][value="' + pt + '"]');
         if (pr) pr.checked = true;
         buildMgrBookmarkTreeSelector(btn.dataset.folderId ? Number(btn.dataset.folderId) : null);
         new bootstrap.Modal(document.getElementById('mgrBookmarkModal')).show();
     }
 
-    async function submitMgrBookmarkModal() {
-        var id = document.getElementById('mgrModalBookmarkId').value;
-        var title = document.getElementById('mgrModalBookmarkTitle').value.trim();
-        var url = document.getElementById('mgrModalBookmarkUrl').value.trim();
+    async function mgrSubmitBookmarkForm() {
+        var id = document.getElementById('mgrBookmarkId').value;
+        var title = document.getElementById('mgrBookmarkTitle').value.trim();
+        var url = document.getElementById('mgrBookmarkUrl').value.trim();
         if (!title) { alert('请输入标题'); return; }
         if (!url) { alert('请输入URL'); return; }
         if (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('/')) { alert('请输入有效的URL（以 http:// 或 https:// 开头）'); return; }
-        var fid = document.getElementById('mgrModalBookmarkFolderId').value;
-        var desc = document.getElementById('mgrModalBookmarkDescription').value.trim();
-        var logo = document.getElementById('mgrModalBookmarkLogoUrl').value.trim();
-        var tags = document.getElementById('mgrModalBookmarkTags').value.trim();
-        var ptRadio = document.querySelector('input[name="mgrModalBookmarkPublicType"]:checked');
+        var fid = document.getElementById('mgrBookmarkFolderId').value;
+        var desc = document.getElementById('mgrBookmarkDescription').value.trim();
+        var logo = document.getElementById('mgrBookmarkLogoUrl').value.trim();
+        var tags = document.getElementById('mgrBookmarkTags').value.trim();
+        var ptRadio = document.querySelector('input[name="mgrBookmarkPublicType"]:checked');
         if (!ptRadio) { alert('请选择类型（公开/私密）'); return; }
         var pt = parseInt(ptRadio.value);
         var body = { title: title, url: url, folderId: fid ? Number(fid) : null, description: desc, logoUrl: logo, tags: tags, publicType: pt };
@@ -992,20 +1004,20 @@
             var resp;
             if (id) { resp = await fetch('/api/admin/bookmarks/' + id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); }
             else { resp = await fetch('/api/admin/bookmarks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); }
-            if (resp.ok) { bootstrap.Modal.getInstance(document.getElementById('mgrBookmarkModal')).hide(); loadBookmarks(); }
+            if (resp.ok) { bootstrap.Modal.getInstance(document.getElementById('mgrBookmarkModal')).hide(); mgrLoadBookmarks(); }
             else { var err = await resp.json().catch(function() { return {}; }); alert('保存失败：' + (err.message || '服务器错误')); }
         } catch(e) { alert('保存失败：网络错误'); }
     }
 
-    function deleteMgrBookmark(id) { deleteBookmarkId = id; new bootstrap.Modal(document.getElementById('deleteBookmarkModal')).show(); }
-    async function confirmDeleteBookmark() {
-        if (!deleteBookmarkId) return;
+    function mgrDeleteBookmark(id) { mgrDeleteBookmarkId = id; new bootstrap.Modal(document.getElementById('deleteBookmarkModal')).show(); }
+    async function mgrConfirmDeleteBookmark() {
+        if (!mgrDeleteBookmarkId) return;
         try {
-            var resp = await fetch('/api/admin/bookmarks/' + deleteBookmarkId, { method: 'DELETE' });
-            if (resp.ok) { bootstrap.Modal.getInstance(document.getElementById('deleteBookmarkModal')).hide(); loadBookmarks(); }
+            var resp = await fetch('/api/admin/bookmarks/' + mgrDeleteBookmarkId, { method: 'DELETE' });
+            if (resp.ok) { bootstrap.Modal.getInstance(document.getElementById('deleteBookmarkModal')).hide(); mgrLoadBookmarks(); }
             else { alert('删除失败'); bootstrap.Modal.getInstance(document.getElementById('deleteBookmarkModal')).hide(); }
         } catch(e) { alert('删除失败：' + e.message); }
-        deleteBookmarkId = null;
+        mgrDeleteBookmarkId = null;
     }
 
     // 点击外部关闭管理书签树形选择器
@@ -1018,8 +1030,8 @@
     // ========== 文件夹 CRUD（管理模式） ==========
 
     // 文件夹父级树形选择器
-    function buildMgrFolderTreeSelector(selectedParentId) {
-        var dropdown = document.getElementById('mgrTreeSelectDropdown');
+    function buildFolderTreeSelector(selectedParentId) {
+        var dropdown = document.getElementById('folderTreeSelectDropdown');
         var hidden = document.getElementById('folderParentId');
         var label = document.getElementById('folderParentLabel');
         function setLabel(v, t) { hidden.value = v; label.textContent = t; }
@@ -1031,7 +1043,7 @@
         topItem.style.paddingLeft = '12px';
         var es = document.createElement('span'); es.className = 'ts-empty'; topItem.appendChild(es);
         var tn = document.createElement('span'); tn.className = 'ts-name'; tn.textContent = '无（顶级文件夹）'; topItem.appendChild(tn);
-        topItem.onclick = function() { setLabel('', '无（顶级文件夹）'); dropdown.querySelectorAll('.select-selected').forEach(function(el) { el.classList.remove('select-selected'); }); topItem.classList.add('select-selected'); closeMgrTreePanel(); };
+        topItem.onclick = function() { setLabel('', '无（顶级文件夹）'); dropdown.querySelectorAll('.select-selected').forEach(function(el) { el.classList.remove('select-selected'); }); topItem.classList.add('select-selected'); closeFolderTreePanel(); };
         dropdown.appendChild(topItem);
         function renderTree(folders, level, parentEl) {
             var container = parentEl || dropdown;
@@ -1046,7 +1058,7 @@
                 div.appendChild(ts);
                 var ns = document.createElement('span'); ns.className = 'ts-name'; ns.textContent = f.name;
                 div.appendChild(ns);
-                div.onclick = function() { setLabel(f.id, f.name); dropdown.querySelectorAll('.select-selected').forEach(function(el) { el.classList.remove('select-selected'); }); div.classList.add('select-selected'); closeMgrTreePanel(); };
+                div.onclick = function() { setLabel(f.id, f.name); dropdown.querySelectorAll('.select-selected').forEach(function(el) { el.classList.remove('select-selected'); }); div.classList.add('select-selected'); closeFolderTreePanel(); };
                 container.appendChild(div);
                 if (hasChildren) { var cd = document.createElement('div'); cd.className = 'tree-select-children'; cd.style.display = 'none'; container.appendChild(cd); renderTree(f.children, level + 1, cd); }
             });
@@ -1054,11 +1066,11 @@
         renderTree(folderTreeData, 0);
     }
 
-    function toggleMgrTreePanel() { var dd = document.getElementById('mgrTreeSelectDropdown'); if (dd) dd.classList.toggle('open'); }
-    function closeMgrTreePanel() { var dd = document.getElementById('mgrTreeSelectDropdown'); if (dd) dd.classList.remove('open'); }
+    function toggleFolderTreePanel() { var dd = document.getElementById('folderTreeSelectDropdown'); if (dd) dd.classList.toggle('open'); }
+    function closeFolderTreePanel() { var dd = document.getElementById('folderTreeSelectDropdown'); if (dd) dd.classList.remove('open'); }
 
     document.addEventListener('click', function(e) {
-        if (!e.target.closest('#folderModal .tree-select')) { closeMgrTreePanel(); }
+        if (!e.target.closest('#folderModal .tree-select')) { closeFolderTreePanel(); }
     });
 
     // ========== 文件夹/书签变更后局部刷新（不闪白） ==========
@@ -1119,99 +1131,29 @@
             var folders = await folderResp.json();
             folderTreeData = folders;
 
-            // 2. 保存展开 + 高亮状态
-            var savedOpen = {};
-            document.querySelectorAll('.sidebar-nav .sidebar-channel[data-folder-id]').forEach(function(ch) {
-                var fid = ch.getAttribute('data-folder-id');
-                if (fid) savedOpen[fid] = ch.classList.contains('open');
-            });
-            var savedActiveId = null;
-            var activeCh = document.querySelector('.sidebar-nav .sidebar-channel.active[data-folder-id]');
-            if (activeCh) savedActiveId = activeCh.getAttribute('data-folder-id');
-
-            // 3. 获取最新页面 HTML
+            // 2. 获取最新页面 HTML
             var resp = await fetch('/index');
             var html = await resp.text();
             var parser = new DOMParser();
             var doc = parser.parseFromString(html, 'text/html');
 
-            // 替换侧边栏导航（事件由上面的委托处理，不受影响）
-            var oldNav = document.querySelector('.sidebar-nav');
-            var newNav = doc.querySelector('.sidebar-nav');
-            if (!oldNav || !newNav) throw new Error('sidebar-nav 未找到');
-            oldNav.innerHTML = newNav.innerHTML;
+            // 3. 替换左侧文件夹列表
+            var oldList = document.querySelector('.sidebar-folder-list');
+            var newList = doc.querySelector('.sidebar-folder-list');
+            if (oldList && newList) oldList.innerHTML = newList.innerHTML;
 
-            // 恢复展开/收起 + 高亮状态
-            document.querySelectorAll('.sidebar-nav .sidebar-channel[data-folder-id]').forEach(function(ch) {
-                var fid = ch.getAttribute('data-folder-id');
-                if (fid && savedOpen[fid] === false) ch.classList.remove('open');
-                if (fid === savedActiveId) ch.classList.add('active');
-                else if (fid) ch.classList.remove('active');
-            });
-
-            // 替换浏览模式面板
+            // 4. 替换浏览面板（搜索区）
             var oldBrowse = document.getElementById('bmBrowsePanel');
             var newBrowse = doc.getElementById('bmBrowsePanel');
             if (oldBrowse && newBrowse) oldBrowse.innerHTML = newBrowse.innerHTML;
 
-            // 替换管理中文件夹树
+            // 5. 替换管理中文件夹树
             var oldTree = document.querySelector('.mgmt-tree-panel > div.py-1');
             var newTree = doc.querySelector('.mgmt-tree-panel > div.py-1');
             if (oldTree && newTree) oldTree.innerHTML = newTree.innerHTML;
-
-            // 重新给管理中文件夹树启用拖拽（draggable 属性被 innerHTML 替换丢失）
-            // 用 setTimeout(0) 确保 DOM 完全就绪后设置，兼容所有浏览器
             setTimeout(enableMgrFolderDrag, 0);
 
-            // 4. 迷你模式 flyout 清空重建
-            var fc = document.querySelector('.mini-flyout-container');
-            if (fc) fc.innerHTML = '';
-            (function rebuildFlyouts() {
-                if (window.innerWidth <= 768) return;
-                document.querySelectorAll('.sidebar-channel.open[data-folder-id]').forEach(function(ch) {
-                    var list = ch.querySelector('.channel-list');
-                    if (!list || !list.children.length) return;
-                    var header = ch.querySelector('.channel-title');
-                    if (!header) return;
-                    var fl = document.createElement('div');
-                    fl.className = 'mini-flyout';
-                    fl.style.display = 'none';
-                    var ft = document.createElement('div');
-                    ft.className = 'flyout-title';
-                    ft.textContent = (header.querySelector('.channel-text:first-child') || {}).textContent || '';
-                    fl.appendChild(ft);
-                    var fList = document.createElement('div');
-                    fList.className = 'flyout-list';
-                    list.querySelectorAll('li > a').forEach(function(a) {
-                        var ca = a.cloneNode(true);
-                        ca.addEventListener('click', function(ev) {
-                            ev.preventDefault();
-                            var fid = a.getAttribute('data-folder-id');
-                            var sn = a.getAttribute('data-section-name');
-                            switchFolderPanel(fid);
-                            var p = document.querySelector('.folder-panel[data-folder-id="' + fid + '"]');
-                            if (p && sn) {
-                                var ts = p.querySelector('.category-section[data-section-name="' + sn + '"]');
-                                if (ts) window.scrollTo({ top: ts.getBoundingClientRect().top + window.pageYOffset - 80, behavior: 'smooth' });
-                            }
-                        });
-                        fList.appendChild(ca);
-                    });
-                    fl.appendChild(fList);
-                    document.body.appendChild(fl);
-                    ch.addEventListener('mouseenter', function() {
-                        var rect = ch.getBoundingClientRect();
-                        fl.style.display = 'block';
-                        fl.style.position = 'fixed';
-                        fl.style.left = (rect.right) + 'px';
-                        fl.style.top = (rect.top - 8) + 'px';
-                        fl.style.animation = 'flyoutFadeIn 0.2s ease';
-                    });
-                    ch.addEventListener('mouseleave', function() { fl.style.display = 'none'; });
-                });
-            })();
         } catch(e) {
-            // 刷新失败时提示用户
             var errEl = document.createElement('div');
             errEl.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#dc3545;color:#fff;padding:12px 18px;border-radius:8px;font-size:13px;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.2);cursor:pointer;max-width:400px;word-break:break-all';
             errEl.textContent = '刷新失败：' + e.message;
@@ -1230,7 +1172,7 @@
         document.getElementById('folderForm').reset();
         document.getElementById('folderId').value = '';
         var pid = btn ? (btn.dataset.parentFolderId || '') : '';
-        buildMgrFolderTreeSelector(pid || null);
+        buildFolderTreeSelector(pid || null);
         document.getElementById('folderModalTitle').textContent = pid ? '新增子文件夹' : '新增文件夹';
         document.getElementById('folderSortOrder').value = '0';
         new bootstrap.Modal(document.getElementById('folderModal')).show();
@@ -1239,7 +1181,7 @@
     function openEditFolderModal(btn) {
         document.getElementById('folderForm').reset();
         document.getElementById('folderId').value = btn.dataset.id;
-        buildMgrFolderTreeSelector(btn.dataset.parentId || null);
+        buildFolderTreeSelector(btn.dataset.parentId || null);
         document.getElementById('folderName').value = btn.dataset.name || '';
         document.getElementById('folderNameEn').value = btn.dataset.nameEn || '';
         document.getElementById('folderIcon').value = btn.dataset.icon || '';
@@ -1248,7 +1190,7 @@
         new bootstrap.Modal(document.getElementById('folderModal')).show();
     }
 
-    async function saveMgrFolder() {
+    async function saveFolder() {
         var id = document.getElementById('folderId').value;
         var name = document.getElementById('folderName').value.trim();
         if (!name) { alert('请输入文件夹名称'); return; }
@@ -1264,7 +1206,7 @@
     }
 
     function openDeleteFolderModal(btn) {
-        deleteFolderId = Number(btn.dataset.folderId);
+        mgrDeleteFolderId = Number(btn.dataset.folderId);
         document.getElementById('deleteFolderTitle').textContent = '确认删除';
         document.getElementById('deleteFolderMessage').textContent = '正在检查文件夹内容...';
         var w = document.getElementById('deleteFolderWarning'); if (w) w.classList.add('d-none');
@@ -1276,7 +1218,7 @@
 
     async function checkFolderContents() {
         try {
-            var resp = await fetch('/api/folders/' + deleteFolderId + '?force=false', { method: 'DELETE' });
+            var resp = await fetch('/api/folders/' + mgrDeleteFolderId + '?force=false', { method: 'DELETE' });
             var data = await resp.json();
             if (data.hasChildren) {
                 document.getElementById('deleteFolderTitle').textContent = '⚠ 确认级联删除';
@@ -1296,11 +1238,11 @@
     }
 
     async function confirmDeleteFolder() {
-        if (!deleteFolderId) return;
+        if (!mgrDeleteFolderId) return;
         var btn = document.getElementById('deleteFolderBtn');
         btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>删除中';
         try {
-            var resp = await fetch('/api/folders/' + deleteFolderId + '?force=true', { method: 'DELETE' });
+            var resp = await fetch('/api/folders/' + mgrDeleteFolderId + '?force=true', { method: 'DELETE' });
             var data = await resp.json();
             if (data.success) { bootstrap.Modal.getInstance(document.getElementById('deleteFolderModal')).hide(); scheduleRefresh(); }
             else { var er = document.getElementById('deleteFolderError'); if (er) { er.textContent = data.message || '删除失败'; er.classList.remove('d-none'); } }

@@ -50,6 +50,18 @@ public class SecurityConfig {
                 .permitAll()
             )
             .csrf(csrf -> csrf.ignoringRequestMatchers("/api/**", "/admin/api/**", "/admin/tool/import"))
+            .exceptionHandling(ex -> ex
+                .authenticationEntryPoint((req, resp, authException) -> {
+                    String uri = req.getRequestURI();
+                    if (uri.startsWith("/api/") || uri.startsWith("/admin/api/")) {
+                        resp.setStatus(401);
+                        resp.setContentType("application/json;charset=UTF-8");
+                        resp.getWriter().write("{\"success\":false,\"message\":\"未登录或会话已过期\"}");
+                    } else {
+                        resp.sendRedirect("/login");
+                    }
+                })
+            )
             // JWT 过滤器在 session 认证之前执行，有 token 就用 token，没有则走 session
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 

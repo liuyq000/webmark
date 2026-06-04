@@ -60,5 +60,25 @@
             <a th:href="@{/index}"><i class="bi bi-arrow-left"></i> 返回首页</a>
         </div>
     </div>
+    <script>
+    document.querySelector('form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        var form = this;
+        var username = form.querySelector('[name=username]').value;
+        var password = form.querySelector('[name=password]').value;
+        fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: username, password: password })
+        }).then(function(r) { return r.json(); }).then(function(d) {
+            if (d.success) {
+                localStorage.setItem('token', d.token);
+                localStorage.setItem('refreshToken', d.refreshToken);
+            }
+        }).finally(function() {
+            form.submit();
+        });
+    });
+    </script>
 </body>
 </html>

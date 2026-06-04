@@ -1,4 +1,55 @@
 
+// ========== JWT 自动注入 + 刷新 ==========
+(function() {
+    var originalFetch = window.fetch;
+    var refreshPromise = null;
+    window.fetch = function(url, options) {
+        options = options || {};
+        options.headers = options.headers || {};
+        var token = localStorage.getItem('token');
+        if (token && typeof url === 'string' && url.startsWith('/api/') && !url.includes('/api/auth/')) {
+            options.headers['Authorization'] = 'Bearer ' + token;
+        }
+        return originalFetch(url, options).then(function(response) {
+            if (response.status === 401 && typeof url === 'string' && url.startsWith('/api/') && !url.includes('/api/auth/')) {
+                if (!refreshPromise) {
+                    var rt = localStorage.getItem('refreshToken');
+                    if (!rt) { window.location.href = '/login'; return response; }
+                    refreshPromise = originalFetch('/api/auth/refresh', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ refreshToken: rt })
+                    }).then(function(r) { return r.json(); }).then(function(d) {
+                        if (d.success) {
+                            localStorage.setItem('token', d.token);
+                            localStorage.setItem('refreshToken', d.refreshToken);
+                            refreshPromise = null;
+                            return true;
+                        }
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('refreshToken');
+                        window.location.href = '/login';
+                        return false;
+                    }).catch(function() {
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('refreshToken');
+                        window.location.href = '/login';
+                        return false;
+                    });
+                }
+                return refreshPromise.then(function(ok) {
+                    if (ok) {
+                        options.headers['Authorization'] = 'Bearer ' + localStorage.getItem('token');
+                        return originalFetch(url, options);
+                    }
+                    return response;
+                });
+            }
+            return response;
+        });
+    };
+})();
+
 // ========== 全局工具函数（供 index.html 内联 JS 调用） ==========
 function escapeHtml(str) {
     var div = document.createElement('div');
@@ -13,6 +64,46 @@ function highlightText(text, keyword) {
     var regex = new RegExp('(' + escapedKw + ')', 'gi');
     return escaped.replace(regex, '<mark class="search-highlight">$1</mark>');
 }
+
+// ========== 文件夹浮层面板 ==========
+var floatTimer = null;
+function showFolderFloat(el) {
+    clearTimeout(floatTimer);
+    var panel = document.getElementById('folderFloatPanel');
+    var content = el.querySelector('.folder-float-content');
+    if (content) {
+        panel.innerHTML = content.innerHTML;
+    } else {
+        panel.innerHTML = '<div class="float-empty">暂无书签</div>';
+    }
+    panel.classList.add('show');
+    document.querySelectorAll('.sidebar-folder-item').forEach(function(item) { item.style.background = ''; });
+    el.style.background = 'rgba(0,0,0,0.06)';
+}
+function hideFolderFloat() {
+    floatTimer = setTimeout(function() {
+        var panel = document.getElementById('folderFloatPanel');
+        panel.classList.remove('show');
+        document.querySelectorAll('.sidebar-folder-item').forEach(function(item) { item.style.background = ''; });
+    }, 200);
+}
+function cancelHideFolderFloat() {
+    clearTimeout(floatTimer);
+}
+
+// ========== 首页搜索引擎搜索 ==========
+function doHomeSearch() {
+    var engine = document.getElementById('searchEngineSelect').value;
+    var keyword = document.getElementById('homeSearchInput').value.trim();
+    if (!keyword) return;
+    var urls = {
+        baidu: 'https://www.baidu.com/s?wd=' + encodeURIComponent(keyword),
+        quark: 'https://quark.sm.cn/s?q=' + encodeURIComponent(keyword),
+        google: 'https://www.google.com/search?q=' + encodeURIComponent(keyword)
+    };
+    window.open(urls[engine] || urls.baidu, '_blank');
+}
+
 
 document.addEventListener('DOMContentLoaded', function () {
     // 移动端侧边栏
@@ -400,14 +491,14 @@ document.addEventListener('DOMContentLoaded', function () {
     window.openBookmarkModal = function () {
         var modal = document.getElementById('bookmarkModal');
         if (!modal) return;
-        document.getElementById('modalBookmarkId').value = '';
+        document.getElementById('bookmarkId').value = '';
         document.getElementById('bookmarkModalTitle').textContent = '新建书签';
-        document.getElementById('modalBookmarkTitle').value = '';
-        document.getElementById('modalBookmarkUrl').value = '';
-        document.getElementById('modalBookmarkDescription').value = '';
-        document.getElementById('modalBookmarkLogoUrl').value = '';
-        document.getElementById('modalBookmarkTags').value = '';
-        var publicType1 = document.querySelector('input[name="modalBookmarkPublicType"][value="1"]');
+        document.getElementById('bookmarkTitle').value = '';
+        document.getElementById('bookmarkUrl').value = '';
+        document.getElementById('bookmarkDescription').value = '';
+        document.getElementById('bookmarkLogoUrl').value = '';
+        document.getElementById('bookmarkTags').value = '';
+        var publicType1 = document.querySelector('input[name="bookmarkPublicType"][value="1"]');
         if (publicType1) publicType1.checked = true;
         buildBookmarkTreeSelector(null);
         new bootstrap.Modal(modal).show();
@@ -415,8 +506,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     window.buildBookmarkTreeSelector = function (selectedFolderId) {
         var dropdown = document.getElementById('bookmarkTreeSelectDropdown');
-        var hidden = document.getElementById('modalBookmarkFolderId');
-        var label = document.getElementById('modalBookmarkFolderLabel');
+        var hidden = document.getElementById('bookmarkFolderId');
+        var label = document.getElementById('bookmarkFolderLabel');
         if (!dropdown || !hidden) return;
 
         function setLabel(val, text) {
@@ -507,9 +598,9 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     window.submitBookmarkFromModal = function () {
-        var id = document.getElementById('modalBookmarkId').value;
-        var title = document.getElementById('modalBookmarkTitle').value.trim();
-        var url = document.getElementById('modalBookmarkUrl').value.trim();
+        var id = document.getElementById('bookmarkId').value;
+        var title = document.getElementById('bookmarkTitle').value.trim();
+        var url = document.getElementById('bookmarkUrl').value.trim();
 
         if (!title) { alert('请输入标题'); return; }
         if (!url) { alert('请输入URL'); return; }
@@ -518,11 +609,11 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        var folderId = document.getElementById('modalBookmarkFolderId').value;
-        var description = document.getElementById('modalBookmarkDescription').value.trim();
-        var logoUrl = document.getElementById('modalBookmarkLogoUrl').value.trim();
-        var tags = document.getElementById('modalBookmarkTags').value.trim();
-        var publicTypeRadio = document.querySelector('input[name="modalBookmarkPublicType"]:checked');
+        var folderId = document.getElementById('bookmarkFolderId').value;
+        var description = document.getElementById('bookmarkDescription').value.trim();
+        var logoUrl = document.getElementById('bookmarkLogoUrl').value.trim();
+        var tags = document.getElementById('bookmarkTags').value.trim();
+        var publicTypeRadio = document.querySelector('input[name="bookmarkPublicType"]:checked');
         if (!publicTypeRadio) { alert('请选择类型（公开/私密）'); return; }
         var publicType = parseInt(publicTypeRadio.value);
 

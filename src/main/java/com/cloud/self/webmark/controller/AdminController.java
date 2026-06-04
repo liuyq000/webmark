@@ -18,6 +18,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
@@ -66,7 +67,15 @@ public class AdminController {
             @RequestParam(required = false) String type,
             @AuthenticationPrincipal UserDetails userDetails) {
         Map<String, Object> result = new HashMap<>();
-        User user = userService.findByUserName(userDetails.getUsername());
+        String username = userDetails != null ? userDetails.getUsername() :
+                SecurityContextHolder.getContext().getAuthentication() != null ?
+                        SecurityContextHolder.getContext().getAuthentication().getName() : null;
+        if (username == null) {
+            result.put("success", false);
+            result.put("message", "未登录或会话已过期");
+            return result;
+        }
+        User user = userService.findByUserName(username);
         try {
             int savedCount;
             if ("YES".equals(structure)) {

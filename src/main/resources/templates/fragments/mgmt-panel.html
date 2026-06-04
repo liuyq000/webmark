@@ -1,140 +1,133 @@
 <!-- fragment: mgmt-panel -->
-            <!-- ========== 书签管理（左树右表） ========== -->
-<div th:fragment="mgmtPanel" id="bmMgmtPanel" xmlns:th="http://www.thymeleaf.org"
-     style="display:none; position:fixed; top:56px; left:220px; right:0; bottom:0; background:var(--main-bg); z-index:900; padding:20px; overflow:auto;">
-                <h5 class="mb-3"><i class="bi bi-bookmarks"></i> 书签管理</h5>
-                <div class="d-flex shadow-sm" style="border-radius:8px; overflow:hidden; max-width:100%;">
-                    <!-- 左侧文件夹树 -->
-                    <div class="mgmt-tree-panel">
-                        <div class="tree-header d-flex justify-content-between align-items-center pe-2">
-                            <span><i class="bi bi-folder2-open"></i> 文件夹</span>
-                            <button class="btn btn-sm btn-link text-decoration-none p-0 text-primary" onclick="openAddFolderModal()" title="新增顶级文件夹">
-                                <i class="bi bi-plus-circle fs-6"></i>
-                            </button>
-                        </div>
-                        <div class="py-1">
-                            <!-- 全部书签 -->
-                            <div class="tree-item active" data-folder-id="" onclick="selectFolder(this)">
-                                <span style="display:inline-block;width:16px"></span>
-                                <i class="bi bi-layers folder-icon"></i> 全部书签
+            <div th:fragment="mgmtPanel" xmlns:th="http://www.thymeleaf.org">
+                <div class="modal fade" id="bmMgmtModal" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title"><i class="bi bi-bookmarks"></i> 书签管理</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                             </div>
-                            <!-- 一级文件夹 -->
-                            <th:block th:each="folder : ${folderTree}">
-                                <div class="tree-item folder-parent d-flex justify-content-between align-items-center" th:attr="data-folder-id=${folder.id}" onclick="selectFolder(this)">
-                                    <div class="text-truncate flex-grow-1">
-                                        <span class="toggle-icon" th:if="${folder.children != null and !folder.children.isEmpty()}" onclick="event.stopPropagation(); toggleTree(this)">
-                                            <i class="bi bi-chevron-right"></i>
-                                        </span>
-                                        <span class="toggle-icon" th:if="${folder.children == null or folder.children.isEmpty()}">&nbsp;</span>
-                                        <i class="bi bi-folder-fill text-warning folder-icon"></i>
-                                        <span th:text="${folder.name}">文件夹</span>
-                                    </div>
-                                    <div class="tree-item-actions">
-                                        <i class="bi bi-pencil" onclick="event.stopPropagation(); openEditFolderModal(this)" th:attr="data-id=${folder.id},data-name=${folder.name},data-name-en=${folder.nameEn},data-icon=${folder.icon},data-sort=${folder.sortOrder},data-parent-id=${folder.parentId}" title="编辑"></i>
-                                        <i class="bi bi-plus-circle" onclick="event.stopPropagation(); openAddFolderModal(this)" th:attr="data-parent-folder-id=${folder.id}" title="新增子文件夹"></i>
-                                        <i class="bi bi-trash" onclick="event.stopPropagation(); openDeleteFolderModal(this)" th:attr="data-folder-id=${folder.id}" title="删除"></i>
-                                    </div>
-                                </div>
-                                <!-- 二级文件夹 -->
-                                <div class="tree-children" th:if="${folder.children != null}">
-                                    <th:block th:each="child : ${folder.children}">
-                                        <div class="tree-item d-flex justify-content-between align-items-center" style="padding-left:36px" th:attr="data-folder-id=${child.id}" onclick="selectFolder(this)">
-                                            <div class="text-truncate flex-grow-1">
-                                                <span class="toggle-icon" th:if="${child.children != null and !child.children.isEmpty()}" onclick="event.stopPropagation(); toggleTree(this)">
-                                                    <i class="bi bi-chevron-right"></i>
-                                                </span>
-                                                <span class="toggle-icon" th:if="${child.children == null or child.children.isEmpty()}">&nbsp;</span>
-                                                <i class="bi bi-folder2 text-secondary folder-icon"></i>
-                                                <span th:text="${child.name}">子文件夹</span>
+                            <div class="modal-body p-0" id="bmMgmtPanel">
+                                <div class="d-flex" style="min-height:60vh">
+                                    <!-- 左侧文件夹树 -->
+                                    <div class="mgmt-tree-panel">
+                                        <div class="tree-header d-flex justify-content-between align-items-center pe-2">
+                                            <span><i class="bi bi-folder2-open"></i> 文件夹</span>
+                                            <button class="btn btn-sm btn-link text-decoration-none p-0 text-primary" onclick="openAddFolderModal()" title="新增顶级文件夹">
+                                                <i class="bi bi-plus-circle fs-6"></i>
+                                            </button>
+                                        </div>
+                                        <div class="py-1">
+                                            <div class="tree-item active" data-folder-id="" onclick="selectFolder(this)">
+                                                <span style="display:inline-block;width:16px"></span>
+                                                <i class="bi bi-layers folder-icon"></i> 全部书签
                                             </div>
-                                            <div class="tree-item-actions">
-                                                <i class="bi bi-pencil" onclick="event.stopPropagation(); openEditFolderModal(this)" th:attr="data-id=${child.id},data-name=${child.name},data-name-en=${child.nameEn},data-icon=${child.icon},data-sort=${child.sortOrder},data-parent-id=${child.parentId}" title="编辑"></i>
-                                                <i class="bi bi-plus-circle" onclick="event.stopPropagation(); openAddFolderModal(this)" th:attr="data-parent-folder-id=${child.id}" title="新增子文件夹"></i>
-                                                <i class="bi bi-trash" onclick="event.stopPropagation(); openDeleteFolderModal(this)" th:attr="data-folder-id=${child.id}" title="删除"></i>
+                                            <th:block th:each="folder : ${folderTree}">
+                                                <div class="tree-item folder-parent d-flex justify-content-between align-items-center" th:attr="data-folder-id=${folder.id}" onclick="selectFolder(this)">
+                                                    <div class="text-truncate flex-grow-1">
+                                                        <span class="toggle-icon" th:if="${folder.children != null and !folder.children.isEmpty()}" onclick="event.stopPropagation(); toggleTree(this)"><i class="bi bi-chevron-right"></i></span>
+                                                        <span class="toggle-icon" th:if="${folder.children == null or folder.children.isEmpty()}">&nbsp;</span>
+                                                        <i class="bi bi-folder-fill text-warning folder-icon"></i>
+                                                        <span th:text="${folder.name}">文件夹</span>
+                                                    </div>
+                                                    <div class="tree-item-actions">
+                                                        <i class="bi bi-pencil" onclick="event.stopPropagation(); openEditFolderModal(this)" th:attr="data-id=${folder.id},data-name=${folder.name},data-name-en=${folder.nameEn},data-icon=${folder.icon},data-sort=${folder.sortOrder},data-parent-id=${folder.parentId}" title="编辑"></i>
+                                                        <i class="bi bi-plus-circle" onclick="event.stopPropagation(); openAddFolderModal(this)" th:attr="data-parent-folder-id=${folder.id}" title="新增子文件夹"></i>
+                                                        <i class="bi bi-trash" onclick="event.stopPropagation(); openDeleteFolderModal(this)" th:attr="data-folder-id=${folder.id}" title="删除"></i>
+                                                    </div>
+                                                </div>
+                                                <div class="tree-children" th:if="${folder.children != null}">
+                                                    <th:block th:each="child : ${folder.children}">
+                                                        <div class="tree-item d-flex justify-content-between align-items-center" style="padding-left:36px" th:attr="data-folder-id=${child.id}" onclick="selectFolder(this)">
+                                                            <div class="text-truncate flex-grow-1">
+                                                                <span class="toggle-icon" th:if="${child.children != null and !child.children.isEmpty()}" onclick="event.stopPropagation(); toggleTree(this)"><i class="bi bi-chevron-right"></i></span>
+                                                                <span class="toggle-icon" th:if="${child.children == null or child.children.isEmpty()}">&nbsp;</span>
+                                                                <i class="bi bi-folder2 text-secondary folder-icon"></i>
+                                                                <span th:text="${child.name}">子文件夹</span>
+                                                            </div>
+                                                            <div class="tree-item-actions">
+                                                                <i class="bi bi-pencil" onclick="event.stopPropagation(); openEditFolderModal(this)" th:attr="data-id=${child.id},data-name=${child.name},data-name-en=${child.nameEn},data-icon=${child.icon},data-sort=${child.sortOrder},data-parent-id=${child.parentId}" title="编辑"></i>
+                                                                <i class="bi bi-plus-circle" onclick="event.stopPropagation(); openAddFolderModal(this)" th:attr="data-parent-folder-id=${child.id}" title="新增子文件夹"></i>
+                                                                <i class="bi bi-trash" onclick="event.stopPropagation(); openDeleteFolderModal(this)" th:attr="data-folder-id=${child.id}" title="删除"></i>
+                                                            </div>
+                                                        </div>
+                                                        <div class="tree-children" th:if="${child.children != null}">
+                                                            <div class="tree-item d-flex justify-content-between align-items-center" style="padding-left:56px" th:each="grandchild : ${child.children}" th:attr="data-folder-id=${grandchild.id}" onclick="selectFolder(this)">
+                                                                <div class="text-truncate flex-grow-1">
+                                                                    <span class="toggle-icon">&nbsp;</span>
+                                                                    <i class="bi bi-folder2-open text-muted folder-icon"></i>
+                                                                    <span th:text="${grandchild.name}">三级</span>
+                                                                </div>
+                                                                <div class="tree-item-actions">
+                                                                    <i class="bi bi-pencil" onclick="event.stopPropagation(); openEditFolderModal(this)" th:attr="data-id=${grandchild.id},data-name=${grandchild.name},data-name-en=${grandchild.nameEn},data-icon=${grandchild.icon},data-sort=${grandchild.sortOrder},data-parent-id=${grandchild.parentId}" title="编辑"></i>
+                                                                    <i class="bi bi-plus-circle" onclick="event.stopPropagation(); openAddFolderModal(this)" th:attr="data-parent-folder-id=${grandchild.id}" title="新增子文件夹"></i>
+                                                                    <i class="bi bi-trash" onclick="event.stopPropagation(); openDeleteFolderModal(this)" th:attr="data-folder-id=${grandchild.id}" title="删除"></i>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </th:block>
+                                                </div>
+                                            </th:block>
+                                        </div>
+                                    </div>
+                                    <!-- 右侧书签表 -->
+                                    <div class="mgmt-table-panel">
+                                        <div class="p-2 border-bottom bg-light">
+                                            <form class="row g-2 align-items-end" onsubmit="mgrSearchBookmarks(event)">
+                                                <div class="col-md-4">
+                                                    <input type="text" id="mgrSearchKeyword" class="form-control form-control-sm" placeholder="搜索标题/URL">
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <select id="mgrSearchPublicType" class="form-select form-select-sm">
+                                                        <option value="">全部类型</option>
+                                                        <option value="1">公开</option>
+                                                        <option value="0">私密</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i> 搜索</button>
+                                                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="mgrResetSearch()">重置</button>
+                                                </div>
+                                                <div class="col-md-3 text-end">
+                                                    <span class="text-muted small ms-2" id="mgrBookmarkCount">共 0 条</span>
+                                                </div>
+                                            </form>
+                                            <div class="text-end mt-2 d-flex justify-content-end gap-2">
+                                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="openImportModal()"><i class="bi bi-upload"></i> 导入收藏夹</button>
+                                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="openExportModal()"><i class="bi bi-download"></i> 导出收藏夹</button>
+                                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="openIconModal()"><i class="bi bi-emoji-smile"></i> 图标管理</button>
+                                                <button type="button" class="btn btn-success btn-sm" onclick="mgrOpenAddBookmarkForm()"><i class="bi bi-plus-lg"></i> 新建书签</button>
                                             </div>
                                         </div>
-                                        <!-- 三级文件夹 -->
-                                        <div class="tree-children" th:if="${child.children != null}">
-                                            <div class="tree-item d-flex justify-content-between align-items-center" style="padding-left:56px" th:each="grandchild : ${child.children}" th:attr="data-folder-id=${grandchild.id}" onclick="selectFolder(this)">
-                                                <div class="text-truncate flex-grow-1">
-                                                    <span class="toggle-icon">&nbsp;</span>
-                                                    <i class="bi bi-folder2-open text-muted folder-icon"></i>
-                                                    <span th:text="${grandchild.name}">三级</span>
-                                                </div>
-                                                <div class="tree-item-actions">
-                                                    <i class="bi bi-pencil" onclick="event.stopPropagation(); openEditFolderModal(this)" th:attr="data-id=${grandchild.id},data-name=${grandchild.name},data-name-en=${grandchild.nameEn},data-icon=${grandchild.icon},data-sort=${grandchild.sortOrder},data-parent-id=${grandchild.parentId}" title="编辑"></i>
-                                                    <i class="bi bi-plus-circle" onclick="event.stopPropagation(); openAddFolderModal(this)" th:attr="data-parent-folder-id=${grandchild.id}" title="新增子文件夹"></i>
-                                                    <i class="bi bi-trash" onclick="event.stopPropagation(); openDeleteFolderModal(this)" th:attr="data-folder-id=${grandchild.id}" title="删除"></i>
-                                                </div>
+                                        <table class="table table-hover" id="mgrBookmarkTable">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th style="width:30px"></th>
+                                                    <th style="width:50px">ID</th>
+                                                    <th>标题</th>
+                                                    <th>URL</th>
+                                                    <th style="width:70px">类型</th>
+                                                    <th style="width:130px">创建时间</th>
+                                                    <th style="width:110px">操作</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="mgrBookmarkTableBody">
+                                                <tr><td colspan="7" class="text-center text-muted py-4">加载中...</td></tr>
+                                            </tbody>
+                                        </table>
+                                        <div class="d-flex justify-content-between align-items-center p-2 border-top" id="mgrPaginationArea">
+                                            <nav><ul class="pagination pagination-sm mb-0" id="mgrPaginationList"></ul></nav>
+                                            <div>
+                                                <select class="form-select form-select-sm" style="width:auto;min-width:90px" id="mgrPageSizeSelect" onchange="mgrChangePageSize(this.value)">
+                                                    <option value="10">10条/页</option>
+                                                    <option value="20">20条/页</option>
+                                                    <option value="50">50条/页</option>
+                                                    <option value="100">100条/页</option>
+                                                </select>
                                             </div>
                                         </div>
-                                    </th:block>
+                                    </div>
                                 </div>
-                            </th:block>
-                        </div>
-                    </div>
-
-                    <!-- 右侧书签表 -->
-                    <div class="mgmt-table-panel">
-                        <!-- 搜索栏 -->
-                        <div class="p-2 border-bottom bg-light">
-                            <form class="row g-2 align-items-end" onsubmit="searchBookmarks(event)">
-                                <div class="col-md-4">
-                                    <input type="text" id="searchKeyword" class="form-control form-control-sm" placeholder="搜索标题/URL">
-                                </div>
-                                <div class="col-md-2">
-                                    <select id="searchPublicType" class="form-select form-select-sm">
-                                        <option value="">全部类型</option>
-                                        <option value="1">公开</option>
-                                        <option value="0">私密</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-3">
-                                    <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i> 搜索</button>
-                                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetSearch()">重置</button>
-                                </div>
-                                <div class="col-md-3 text-end">
-                                    <span class="text-muted small ms-2" id="bookmarkCount">共 0 条</span>
-                                </div>
-                            </form>
-                            <div class="text-end mt-2 d-flex justify-content-end gap-2">
-                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="openImportModal()"><i class="bi bi-upload"></i> 导入收藏夹</button>
-                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="openExportModal()"><i class="bi bi-download"></i> 导出收藏夹</button>
-                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="openIconModal()"><i class="bi bi-emoji-smile"></i> 图标管理</button>
-                                <button type="button" class="btn btn-success btn-sm" onclick="openCreateBookmarkModal()"><i class="bi bi-plus-lg"></i> 新建书签</button>
-                            </div>
-                        </div>
-                        <!-- 表格 -->
-                        <table class="table table-hover" id="bookmarkTable">
-                            <thead class="table-light">
-                                <tr>
-                                    <th style="width:30px"></th>
-                                    <th style="width:50px">ID</th>
-                                    <th>标题</th>
-                                    <th>URL</th>
-                                    <th style="width:70px">类型</th>
-                                    <th style="width:130px">创建时间</th>
-                                    <th style="width:110px">操作</th>
-                                </tr>
-                            </thead>
-                            <tbody id="bookmarkTableBody">
-                                <tr>
-                                    <td colspan="7" class="text-center text-muted py-4">加载中...</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                        <!-- 分页 -->
-                        <div class="d-flex justify-content-between align-items-center p-2 border-top" id="paginationArea">
-                            <nav>
-                                <ul class="pagination pagination-sm mb-0" id="paginationList"></ul>
-                            </nav>
-                            <div>
-                                <select class="form-select form-select-sm" style="width:auto;min-width:90px" id="pageSizeSelect" onchange="changePageSize(this.value)">
-                                    <option value="10">10条/页</option>
-                                    <option value="20">20条/页</option>
-                                    <option value="50">50条/页</option>
-                                    <option value="100">100条/页</option>
-                                </select>
                             </div>
                         </div>
                     </div>
