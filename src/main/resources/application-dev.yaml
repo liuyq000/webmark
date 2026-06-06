@@ -22,3 +22,5 @@ logging:
 webmark:
   data:
     dir: ./data
+  json:
+    pretty-print: true

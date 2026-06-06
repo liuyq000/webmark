@@ -4,14 +4,12 @@ import com.cloud.self.webmark.entity.Bookmark;
 import com.cloud.self.webmark.entity.Folder;
 import com.cloud.self.webmark.entity.User;
 import com.cloud.self.webmark.security.JwtUtil;
-import com.cloud.self.webmark.service.BookmarkService;
-import com.cloud.self.webmark.service.FaviconService;
-import com.cloud.self.webmark.service.FolderService;
-import com.cloud.self.webmark.service.UserService;
+import com.cloud.self.webmark.service.*;
 import com.cloud.self.webmark.store.PageResult;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -34,6 +32,7 @@ public class ApiController {
     private final FolderService folderService;
     private final UserService userService;
     private final FaviconService faviconService;
+    private final CssEditorService cssEditorService;
     private final JwtUtil jwtUtil;
     private final PasswordEncoder passwordEncoder;
 
@@ -147,7 +146,6 @@ public class ApiController {
         if (bookmark.getCreateTime() == null) bookmark.setCreateTime(LocalDateTime.now());
         bookmark.setUpdateTime(LocalDateTime.now());
         bookmarkService.save(bookmark);
-        // 异步抓取 favicon
         final Long savedId = bookmark.getId();
         final String savedUrl = bookmark.getUrl();
         new Thread(() -> {
@@ -169,7 +167,16 @@ public class ApiController {
     }
 
     @PutMapping("/admin/bookmarks/{id}")
-    public ResponseEntity<Map<String, Object>> updateBookmark(@PathVariable Long id, @RequestBody Bookmark bookmark) {
+    public ResponseEntity<Map<String, Object>> updateBookmark(@PathVariable Long id, @RequestBody Bookmark bookmark,
+                                                               @AuthenticationPrincipal UserDetails userDetails) {
+        Bookmark existing = bookmarkService.getById(id);
+        if (existing == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("success", false, "message", "书签不存在"));
+        }
+        User currentUser = getCurrentUser(userDetails);
+        if (currentUser != null && !currentUser.getId().equals(existing.getUserId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("success", false, "message", "无权操作该书签"));
+        }
         bookmark.setId(id);
         bookmarkService.updateById(bookmark);
         Map<String, Object> result = new LinkedHashMap<>();
@@ -178,7 +185,16 @@ public class ApiController {
     }
 
     @DeleteMapping("/admin/bookmarks/{id}")
-    public ResponseEntity<Map<String, Object>> deleteBookmark(@PathVariable Long id) {
+    public ResponseEntity<Map<String, Object>> deleteBookmark(@PathVariable Long id,
+                                                              @AuthenticationPrincipal UserDetails userDetails) {
+        Bookmark existing = bookmarkService.getById(id);
+        if (existing == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("success", false, "message", "书签不存在"));
+        }
+        User currentUser = getCurrentUser(userDetails);
+        if (currentUser != null && !currentUser.getId().equals(existing.getUserId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("success", false, "message", "无权操作该书签"));
+        }
         bookmarkService.removeById(id);
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("success", true);
@@ -198,11 +214,15 @@ public class ApiController {
     }
 
     @PutMapping("/folders/{id}")
-    public ResponseEntity<Folder> updateFolder(@PathVariable Long id, @RequestBody Folder folder) {
-        // 加载现有实体，保留前端没传的关键字段（userId、createTime、deleted）
+    public ResponseEntity<Folder> updateFolder(@PathVariable Long id, @RequestBody Folder folder,
+                                                @AuthenticationPrincipal UserDetails userDetails) {
         Folder existing = folderService.getById(id);
         if (existing == null) {
             return ResponseEntity.notFound().build();
+        }
+        User currentUser = getCurrentUser(userDetails);
+        if (currentUser != null && existing.getUserId() != null && !currentUser.getId().equals(existing.getUserId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         folder.setId(id);
         if (folder.getUserId() == null) folder.setUserId(existing.getUserId());
@@ -214,15 +234,22 @@ public class ApiController {
 
     @DeleteMapping("/folders/{id}")
     public ResponseEntity<Map<String, Object>> deleteFolder(@PathVariable Long id,
-            @RequestParam(defaultValue = "false") boolean force) {
-        Map<String, Object> result = new LinkedHashMap<>();
+            @RequestParam(defaultValue = "false") boolean force,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Folder existing = folderService.getById(id);
+        if (existing == null) {
+            return ResponseEntity.notFound().build();
+        }
+        User currentUser = getCurrentUser(userDetails);
+        if (currentUser != null && existing.getUserId() != null && !currentUser.getId().equals(existing.getUserId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("success", false, "message", "无权操作该文件夹"));
+        }
 
-        // 统计子内容
+        Map<String, Object> result = new LinkedHashMap<>();
         List<Long> descendantIds = folderService.getDescendantIds(id);
-        List<Long> childFolderIds = descendantIds.subList(1, descendantIds.size()); // 去掉自身
+        List<Long> childFolderIds = descendantIds.subList(1, descendantIds.size());
         long bookmarkCount = bookmarkService.listByFolderIds(descendantIds).size();
 
-        // 非强制模式：仅检查，不删除
         if (!force) {
             boolean hasChildren = childFolderIds.size() > 0 || bookmarkCount > 0;
             result.put("success", !hasChildren);
@@ -235,7 +262,6 @@ public class ApiController {
             return ResponseEntity.ok(result);
         }
 
-        // 强制模式：级联删除，先删书签，再删文件夹
         if (bookmarkCount > 0) {
             bookmarkService.removeByFolderIds(descendantIds);
         }
@@ -254,12 +280,14 @@ public class ApiController {
     // ==================== 批量排序 ====================
 
     @PutMapping("/admin/sort/bookmarks")
-    public ResponseEntity<Map<String, Object>> sortBookmarks(@RequestBody List<Map<String, Object>> items) {
+    public ResponseEntity<Map<String, Object>> sortBookmarks(@RequestBody List<Map<String, Object>> items,
+                                                             @AuthenticationPrincipal UserDetails userDetails) {
+        User currentUser = getCurrentUser(userDetails);
         for (Map<String, Object> item : items) {
             Number id = (Number) item.get("id");
             Number sortOrder = (Number) item.get("sortOrder");
             Bookmark b = bookmarkService.getById(id.longValue());
-            if (b != null) {
+            if (b != null && currentUser != null && currentUser.getId().equals(b.getUserId())) {
                 b.setSortOrder(sortOrder.intValue());
                 bookmarkService.updateById(b);
             }
@@ -268,12 +296,14 @@ public class ApiController {
     }
 
     @PutMapping("/admin/sort/folders")
-    public ResponseEntity<Map<String, Object>> sortFolders(@RequestBody List<Map<String, Object>> items) {
+    public ResponseEntity<Map<String, Object>> sortFolders(@RequestBody List<Map<String, Object>> items,
+                                                           @AuthenticationPrincipal UserDetails userDetails) {
+        User currentUser = getCurrentUser(userDetails);
         for (Map<String, Object> item : items) {
             Number id = (Number) item.get("id");
             Number sortOrder = (Number) item.get("sortOrder");
             Folder f = folderService.getById(id.longValue());
-            if (f != null) {
+            if (f != null && currentUser != null && f.getUserId() != null && currentUser.getId().equals(f.getUserId())) {
                 f.setSortOrder(sortOrder.intValue());
                 folderService.updateById(f);
             }
@@ -281,106 +311,28 @@ public class ApiController {
         return ResponseEntity.ok(Map.of("success", true));
     }
 
-    /**
-     * 保存 CSS 变更（拖拽编辑器用）
-     */
+    /** 保存 CSS 变更 - 委托给 CssEditorService */
     @PostMapping("/admin/save-css")
     public ResponseEntity<?> saveCssChanges(@RequestBody Map<String, Object> body) {
         try {
             @SuppressWarnings("unchecked")
             Map<String, Map<String, String>> changes = (Map<String, Map<String, String>>) body.get("changes");
-
-            java.nio.file.Path srcCss = java.nio.file.Paths.get(
-                System.getProperty("user.dir"), "src", "main", "resources", "static", "css", "style.css");
-            java.nio.file.Path targetCss = java.nio.file.Paths.get(
-                System.getProperty("user.dir"), "target", "classes", "static", "css", "style.css");
-
-            if (!java.nio.file.Files.exists(srcCss)) {
-                return ResponseEntity.badRequest().body(Map.of("message", "style.css 文件不存在"));
-            }
-
-            String content = java.nio.file.Files.readString(srcCss);
-            StringBuilder newContent = new StringBuilder(content);
-
-            for (Map.Entry<String, Map<String, String>> entry : changes.entrySet()) {
-                String selector = entry.getKey();
-                Map<String, String> props = entry.getValue();
-
-                int blockStart = findCssBlockStart(newContent.toString(), selector);
-                if (blockStart >= 0) {
-                    int blockEnd = findCssBlockEnd(newContent.toString(), blockStart);
-                    String originalBlock = newContent.substring(blockStart, blockEnd);
-                    String updatedBlock = updateCssBlock(originalBlock, props);
-                    String before = newContent.substring(0, blockStart);
-                    String after = newContent.substring(blockEnd);
-                    newContent = new StringBuilder(before + updatedBlock + after);
-                } else {
-                    StringBuilder newBlock = new StringBuilder();
-                    newBlock.append("\n").append(selector).append(" {\n");
-                    for (Map.Entry<String, String> prop : props.entrySet()) {
-                        newBlock.append("    ").append(prop.getKey()).append(": ").append(prop.getValue()).append(";\n");
-                    }
-                    newBlock.append("}\n");
-                    newContent.append(newBlock);
-                }
-            }
-
-            java.nio.file.Files.writeString(srcCss, newContent.toString());
-            java.nio.file.Files.createDirectories(targetCss.getParent());
-            java.nio.file.Files.writeString(targetCss, newContent.toString());
-            log.info("已保存 {} 个选择器的 CSS 变更", changes.size());
+            cssEditorService.saveCssChanges(changes);
             return ResponseEntity.ok(Map.of("success", true));
-
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         } catch (Exception e) {
             log.error("保存 CSS 变更失败: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError().body(Map.of("message", "保存失败: " + e.getMessage()));
         }
     }
 
-    private int findCssBlockStart(String content, String selector) {
-        int idx = content.indexOf(selector + " {");
-        if (idx >= 0) return idx;
-        return -1;
-    }
+    // ==================== 工具方法 ====================
 
-    private int findCssBlockEnd(String content, int start) {
-        int depth = 0;
-        boolean started = false;
-        for (int i = start; i < content.length(); i++) {
-            if (content.charAt(i) == '{') { started = true; depth++; }
-            if (content.charAt(i) == '}') { depth--; if (depth <= 0 && started) return i + 1; }
+    private User getCurrentUser(UserDetails userDetails) {
+        if (userDetails != null) {
+            return userService.findByUserName(userDetails.getUsername());
         }
-        return content.length();
+        return null;
     }
-
-    private String updateCssBlock(String block, Map<String, String> props) {
-        String result = block;
-        for (Map.Entry<String, String> prop : props.entrySet()) {
-            String propName = prop.getKey();
-            String propValue = prop.getValue();
-            int propIdx = result.indexOf(propName + ":");
-            if (propIdx >= 0) {
-                int valStart = result.indexOf(":", propIdx) + 1;
-                int valEnd = findCssValueEnd(result, valStart);
-                String oldDecl = result.substring(propIdx, valEnd);
-                String newDecl = propName + ": " + propValue;
-                result = result.replace(oldDecl, newDecl);
-            } else {
-                int insertPos = result.lastIndexOf('}');
-                result = result.substring(0, insertPos) + "    " + propName + ": " + propValue + ";\n" + result.substring(insertPos);
-            }
-        }
-        return result;
-    }
-
-    private int findCssValueEnd(String block, int start) {
-        int i = start;
-        while (i < block.length()) {
-            char c = block.charAt(i);
-            if (c == ';') return i + 1;
-            i++;
-        }
-        return block.length();
-    }
-
 }

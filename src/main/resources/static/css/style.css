@@ -109,48 +109,72 @@ a {
     white-space: nowrap;
 }
 
-/* 通用按钮样式（与搜索按钮统一） */
+/* Header 按钮统一无边框简洁样式 */
 .header-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    height: 44px;
-    padding: 0 18px;
-    font-size: 14px;
-    border-radius: 10px;
-    border: 1px solid var(--border-color);
+    gap: 5px;
+    height: 34px;
+    padding: 0 12px;
+    font-size: 13px;
+    border-radius: 6px;
     background: var(--card-bg);
     color: var(--text-secondary);
     cursor: pointer;
     transition: all 0.2s;
-    box-shadow: none;
+    white-space: nowrap;
+}
+
+.header-btn i {
+    font-size: 15px;
+    flex-shrink: 0;
 }
 
 .header-btn:hover {
-    border-color: var(--primary);
-    color: var(--primary);
-    background: var(--card-bg);
+    color: var(--text-primary);
 }
 
-/* Header 搜索按钮（图标） */
-.header-search-btn {
+/* 用户按钮 */
+.user-btn {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    width: 44px;
-    height: 44px;
-    border-radius: 10px;
-    border: 1px solid var(--border-color);
-    background: var(--card-bg);
+    gap: 6px;
+    height: 34px;
+    padding: 0 10px 0 8px;
+    border: none;
+    background: transparent;
     color: var(--text-secondary);
-    font-size: 20px;
+    font-size: 13px;
     cursor: pointer;
+    border-radius: 8px;
     transition: all 0.2s;
+    white-space: nowrap;
 }
-.header-search-btn:hover {
-    border-color: var(--primary);
+.user-btn:hover {
+    background: rgba(128, 128, 128, 0.07);
+    color: var(--text-primary);
+}
+.user-btn i.bi-person-circle {
+    font-size: 18px;
     color: var(--primary);
+    flex-shrink: 0;
+}
+.user-btn-name {
+    max-width: 72px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 500;
+}
+#userDropdownArrow {
+    font-size: 10px;
+    color: #999;
+    transition: transform 0.2s;
+    flex-shrink: 0;
+}
+#userDropdownArrow.open {
+    transform: rotate(180deg);
 }
 
 /* Header 搜索框（弹窗触发） */
@@ -255,7 +279,6 @@ a {
     padding: 0 18px;
     font-size: 14px;
     border-radius: 10px;
-    border: 1px solid var(--border-color);
     background: var(--card-bg);
     color: var(--text-secondary);
     cursor: pointer;
@@ -1607,38 +1630,61 @@ a {
     z-index: 2000;
 }
 .header-user-dropdown .user-btn {
-    color: var(--text-primary);
+    color: var(--text-secondary);
 }
 .header-user-dropdown .user-btn:hover {
-    color: var(--primary);
+    color: var(--text-primary);
 }
 .user-dropdown-menu {
     display: none;
     position: fixed;
-    top: 56px;
-    right: 20px;
-    min-width: 160px;
+    top: 54px;
+    right: 12px;
+    min-width: 180px;
     background: var(--card-bg);
     border: 1px solid var(--border-color);
-    border-radius: 8px;
-    box-shadow: 0 4px 16px rgba(0,0,0,.12);
+    border-radius: 12px;
+    padding: 6px;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.14);
     z-index: 9999;
 }
 .user-dropdown-menu a,
 .user-dropdown-menu button {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
+    gap: 10px;
+    width: 100%;
+    padding: 9px 14px;
     font-size: 13px;
+    font-family: inherit;
     color: var(--text-primary);
     text-decoration: none;
-    transition: background 0.12s;
+    border: none;
+    background: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.12s;
+    box-sizing: border-box;
+}
+.user-dropdown-menu button::-moz-focus-inner {
+    border: 0;
+    padding: 0;
 }
 .user-dropdown-menu a:hover,
 .user-dropdown-menu button:hover {
-    background: var(--main-bg);
-    color: var(--text-primary);
+    background: rgba(128, 128, 128, 0.07);
+    color: var(--primary);
+}
+.user-dropdown-menu a i,
+.user-dropdown-menu button i {
+    font-size: 15px;
+    width: 18px;
+    text-align: center;
+    flex-shrink: 0;
+}
+.user-dropdown-menu form {
+    margin: 0;
+    padding: 0;
 }
 
 /* 暗色主题 */
@@ -1831,22 +1877,85 @@ mark.search-highlight {
     background: var(--card-bg);
     border: 1px solid var(--border-color);
     border-radius: 14px;
-    overflow: hidden;
     box-shadow: 0 4px 20px rgba(0,0,0,.08);
     margin-right: 292px;
 }
+/* 首页搜索引擎选择器（自定义下拉） */
 .home-search-engine {
+    position: relative;
     height: 50px;
-    padding: 0 16px;
-    border: none;
+    min-width: 88px;
     border-right: 1px solid var(--border-color);
+    border-radius: 14px 0 0 14px;
+    user-select: none;
+}
+.home-search-engine .dropdown-trigger {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 100%;
+    width: 100%;
+    padding: 0 28px 0 16px;
+    border: none;
     background: transparent;
     color: var(--text-primary);
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     outline: none;
-    min-width: 80px;
+    border-radius: inherit;
+    transition: background-color 0.15s;
+}
+.home-search-engine .dropdown-trigger:hover {
+    background-color: rgba(128, 128, 128, 0.06);
+}
+.home-search-engine .dropdown-trigger:focus-visible {
+    box-shadow: inset 2px 0 0 var(--primary);
+}
+.home-search-engine .dropdown-trigger .bi-chevron-down {
+    font-size: 12px;
+    color: #999;
+    transition: transform 0.2s;
+}
+.home-search-engine .dropdown-trigger .bi-chevron-down.open {
+    transform: rotate(180deg);
+}
+.home-search-engine .dropdown-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    min-width: 100%;
+    width: max-content;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    padding: 4px;
+    z-index: 100;
+    list-style: none;
+    margin: 0;
+    overflow: hidden;
+}
+.home-search-engine .dropdown-menu.open {
+    display: block;
+}
+.home-search-engine .dropdown-menu li {
+    padding: 8px 14px;
+    font-size: 14px;
+    color: var(--text-primary);
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background-color 0.12s;
+    white-space: nowrap;
+}
+.home-search-engine .dropdown-menu li:hover {
+    background-color: rgba(128, 128, 128, 0.08);
+}
+.home-search-engine .dropdown-menu li.active {
+    color: var(--primary);
+    font-weight: 600;
+    background-color: rgba(74, 144, 217, 0.08);
 }
 .home-search-box {
     display: flex;
@@ -1873,6 +1982,7 @@ mark.search-highlight {
     cursor: pointer;
     font-weight: 500;
     transition: background 0.15s;
+    border-radius: 0 14px 14px 0;
 }
 .home-search-box button:hover { background: #3a7bd5; }
 

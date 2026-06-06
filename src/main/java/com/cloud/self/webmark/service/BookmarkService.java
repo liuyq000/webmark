@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 @Service
@@ -43,25 +44,40 @@ public class BookmarkService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * 构建书签搜索/过滤 Predicate，消除多处重复的 keyword 过滤代码。
+     *
+     * @param keyword    搜索关键词（标题/链接/描述/标签）
+     * @param folderId   单文件夹 ID 精确过滤
+     * @param folderIds  多文件夹 ID 列表过滤
+     * @param publicType 公开类型过滤（0=私密，1=公开）
+     */
+    public static Predicate<Bookmark> buildFilter(String keyword, Long folderId, List<Long> folderIds, Integer publicType) {
+        return b -> {
+            boolean match = true;
+            if (keyword != null && !keyword.isEmpty()) {
+                match = (b.getTitle() != null && b.getTitle().contains(keyword))
+                        || (b.getUrl() != null && b.getUrl().contains(keyword))
+                        || (b.getDescription() != null && b.getDescription().contains(keyword))
+                        || (b.getTags() != null && b.getTags().contains(keyword));
+            }
+            if (match && folderIds != null && !folderIds.isEmpty()) {
+                match = b.getFolderId() != null && folderIds.contains(b.getFolderId());
+            }
+            if (match && folderId != null && folderIds == null) {
+                match = folderId.equals(b.getFolderId());
+            }
+            if (match && publicType != null) {
+                match = publicType.equals(b.getPublicType());
+            }
+            return match;
+        };
+    }
+
     /** 管理后台分页查询 */
     public PageResult<Bookmark> adminPage(int pageNum, int pageSize, String keyword, Long folderId, Integer publicType) {
         return dataStore.getBookmarkRepository().pageOrderBy(pageNum, pageSize,
-                b -> {
-                    boolean match = true;
-                    if (keyword != null && !keyword.isEmpty()) {
-                        match = (b.getTitle() != null && b.getTitle().contains(keyword))
-                                || (b.getUrl() != null && b.getUrl().contains(keyword))
-                                || (b.getDescription() != null && b.getDescription().contains(keyword))
-                                || (b.getTags() != null && b.getTags().contains(keyword));
-                    }
-                    if (match && folderId != null) {
-                        match = folderId.equals(b.getFolderId());
-                    }
-                    if (match && publicType != null) {
-                        match = publicType.equals(b.getPublicType());
-                    }
-                    return match;
-                },
+                buildFilter(keyword, folderId, null, publicType),
                 Comparator.comparing(Bookmark::getCreateTime).reversed());
     }
 
@@ -69,22 +85,7 @@ public class BookmarkService {
     public PageResult<Bookmark> adminPageByFolder(int pageNum, int pageSize, String keyword, Long folderId, Integer publicType, FolderService folderService) {
         List<Long> folderIds = folderId != null ? folderService.getDescendantIds(folderId) : null;
         return dataStore.getBookmarkRepository().pageOrderBy(pageNum, pageSize,
-                b -> {
-                    boolean match = true;
-                    if (keyword != null && !keyword.isEmpty()) {
-                        match = (b.getTitle() != null && b.getTitle().contains(keyword))
-                                || (b.getUrl() != null && b.getUrl().contains(keyword))
-                                || (b.getDescription() != null && b.getDescription().contains(keyword))
-                                || (b.getTags() != null && b.getTags().contains(keyword));
-                    }
-                    if (match && folderIds != null && !folderIds.isEmpty()) {
-                        match = b.getFolderId() != null && folderIds.contains(b.getFolderId());
-                    }
-                    if (match && publicType != null) {
-                        match = publicType.equals(b.getPublicType());
-                    }
-                    return match;
-                },
+                buildFilter(keyword, null, folderIds, publicType),
                 Comparator.comparing(Bookmark::getCreateTime).reversed());
     }
 

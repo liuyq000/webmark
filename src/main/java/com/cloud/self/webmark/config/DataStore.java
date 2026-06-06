@@ -1,6 +1,9 @@
 package com.cloud.self.webmark.config;
 
-import com.cloud.self.webmark.entity.*;
+import com.cloud.self.webmark.entity.Bookmark;
+import com.cloud.self.webmark.entity.Config;
+import com.cloud.self.webmark.entity.Folder;
+import com.cloud.self.webmark.entity.User;
 import com.cloud.self.webmark.store.JsonFileRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,6 +32,7 @@ public class DataStore {
 
     private final String dataDir;
     private final PasswordEncoder passwordEncoder;
+    private final boolean jsonPrettyPrint;
 
     private JsonFileRepository<User> userRepository;
     private JsonFileRepository<Bookmark> bookmarkRepository;
@@ -36,8 +40,10 @@ public class DataStore {
     private JsonFileRepository<Config> configRepository;
 
     public DataStore(@Value("${webmark.data.dir:./data}") String dataDir,
+                     @Value("${webmark.json.pretty-print:true}") boolean jsonPrettyPrint,
                      PasswordEncoder passwordEncoder) {
         this.dataDir = dataDir;
+        this.jsonPrettyPrint = jsonPrettyPrint;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -48,10 +54,10 @@ public class DataStore {
             dir.mkdirs();
         }
 
-        userRepository = new JsonFileRepository<>(new File(dir, "users.json"), User.class);
-        bookmarkRepository = new JsonFileRepository<>(new File(dir, "bookmarks.json"), Bookmark.class);
-        folderRepository = new JsonFileRepository<>(new File(dir, "folders.json"), Folder.class);
-        configRepository = new JsonFileRepository<>(new File(dir, "config.json"), Config.class);
+        userRepository = new JsonFileRepository<>(new File(dir, "users.json"), User.class, jsonPrettyPrint);
+        bookmarkRepository = new JsonFileRepository<>(new File(dir, "bookmarks.json"), Bookmark.class, jsonPrettyPrint);
+        folderRepository = new JsonFileRepository<>(new File(dir, "folders.json"), Folder.class, jsonPrettyPrint);
+        configRepository = new JsonFileRepository<>(new File(dir, "config.json"), Config.class, jsonPrettyPrint);
 
         // 初始化种子数据（仅在首次运行时）
         if (userRepository.count() == 0) {

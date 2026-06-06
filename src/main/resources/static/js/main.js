@@ -104,6 +104,37 @@ function doHomeSearch() {
     window.open(urls[engine] || urls.baidu, '_blank');
 }
 
+// ========== 自定义搜索引擎下拉框 ==========
+function toggleEngineMenu() {
+    var menu = document.getElementById('engineMenu');
+    var icon = document.querySelector('#searchEngineDropdown .bi-chevron-down');
+    var isOpen = menu.classList.toggle('open');
+    if (icon) icon.classList.toggle('open', isOpen);
+}
+function selectEngine(el) {
+    var value = el.getAttribute('data-value');
+    var label = el.textContent;
+    // 更新隐藏 select
+    document.getElementById('searchEngineSelect').value = value;
+    // 更新按钮显示的文本
+    document.querySelector('#searchEngineDropdown .dropdown-label').textContent = label;
+    // 更新激活状态
+    document.querySelectorAll('#engineMenu li').forEach(function(li) { li.classList.remove('active'); });
+    el.classList.add('active');
+    // 关闭菜单
+    document.getElementById('engineMenu').classList.remove('open');
+    var icon = document.querySelector('#searchEngineDropdown .bi-chevron-down');
+    if (icon) icon.classList.remove('open');
+}
+// 点击其他地方关闭下拉
+document.addEventListener('click', function(e) {
+    var dd = document.getElementById('searchEngineDropdown');
+    if (dd && !dd.contains(e.target)) {
+        document.getElementById('engineMenu').classList.remove('open');
+        var icon = document.querySelector('#searchEngineDropdown .bi-chevron-down');
+        if (icon) icon.classList.remove('open');
+    }
+});
 
 document.addEventListener('DOMContentLoaded', function () {
     // 移动端侧边栏

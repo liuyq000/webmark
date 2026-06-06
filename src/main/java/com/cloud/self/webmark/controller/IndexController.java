@@ -15,6 +15,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,16 +36,32 @@ public class IndexController {
                         Model model) {
         User user = null;
         List<Folder> folderTree;
+        List<Bookmark> homeBookmarks = new ArrayList<>();
 
         if (userDetails != null) {
             user = userService.findByUserName(userDetails.getUsername());
             folderTree = user != null ? folderService.listTreeByUserId(user.getId()) : folderService.listPublicTree();
             model.addAttribute("user", user);
+
+            // 登录后：从左侧栏移除"首页"文件夹，将其书签作为快捷链接
+            Folder homeFolder = null;
+            for (int i = folderTree.size() - 1; i >= 0; i--) {
+                if ("首页".equals(folderTree.get(i).getName())) {
+                    homeFolder = folderTree.remove(i);
+                    break;
+                }
+            }
+            if (homeFolder != null) {
+                List<Long> homeDescendantIds = folderService.getDescendantIds(homeFolder.getId());
+                homeBookmarks = bookmarkService.listPublicByFolderIds(homeDescendantIds);
+            }
         } else {
             folderTree = folderService.listPublicTree();
         }
         model.addAttribute("folderTree", folderTree);
-        // 文件夹 ID → Folder 映射（用于模板中根据 ID 查找文件夹信息）
+        model.addAttribute("homeBookmarks", homeBookmarks);
+
+        // 文件夹 ID → Folder 映射
         Map<Long, Folder> folderMap = folderTree.stream()
                 .collect(Collectors.toMap(Folder::getId, f -> f, (a, b) -> a, LinkedHashMap::new));
         model.addAttribute("folderMap", folderMap);

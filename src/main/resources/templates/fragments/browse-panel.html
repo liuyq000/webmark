@@ -4,25 +4,49 @@
                 <!-- 搜索 + 快捷入口 -->
                 <div class="search-shortcut-area">
                     <div class="home-search-row">
-                        <select class="home-search-engine" id="searchEngineSelect">
+                        <div class="home-search-engine" id="searchEngineDropdown">
+                            <button class="dropdown-trigger" type="button" onclick="toggleEngineMenu()">
+                                <span class="dropdown-label">百度</span>
+                                <i class="bi bi-chevron-down"></i>
+                            </button>
+                            <ul class="dropdown-menu" id="engineMenu">
+                                <li data-value="baidu" class="active" onclick="selectEngine(this)">百度</li>
+                                <li data-value="quark" onclick="selectEngine(this)">夸克</li>
+                                <li data-value="google" onclick="selectEngine(this)">谷歌</li>
+                            </ul>
+                        </div>
+                        <select id="searchEngineSelect" hidden>
                             <option value="baidu">百度</option>
                             <option value="quark">夸克</option>
                             <option value="google">谷歌</option>
                         </select>
                         <div class="home-search-box">
-                            <input type="text" id="homeSearchInput" name="q" placeholder="输入关键词搜索..." autocomplete="off" spellcheck="false"
+                            <input type="text" id="homeSearchInput" placeholder="输入关键词搜索..." autocomplete="off" spellcheck="false"
                                    onkeydown="if(event.key==='Enter')doHomeSearch()">
                             <button type="button" onclick="doHomeSearch()">搜 索</button>
                         </div>
                     </div>
                     <div class="home-shortcut-links">
-                        <a href="https://github.com" target="_blank"><i class="bi bi-github"></i> GitHub</a>
-                        <a href="https://translate.google.com" target="_blank"><i class="bi bi-translate"></i> 翻译</a>
-                        <a href="https://mail.qq.com" target="_blank"><i class="bi bi-envelope"></i> 邮箱</a>
-                        <a href="https://www.jd.com" target="_blank"><i class="bi bi-cart"></i> 京东</a>
-                        <a href="https://www.taobao.com" target="_blank"><i class="bi bi-bag"></i> 淘宝</a>
-                        <a href="https://www.bilibili.com" target="_blank"><i class="bi bi-play-btn"></i> B站</a>
-                        <a href="https://www.zhihu.com" target="_blank"><i class="bi bi-chat-dots"></i> 知乎</a>
+                        <!-- 登录后：显示首页文件夹下的书签作为快捷链接 -->
+                        <th:block th:if="${#lists.size(homeBookmarks) > 0}">
+                            <th:block th:each="bm : ${homeBookmarks}">
+                                <a th:href="${bm.url}" target="_blank">
+                                    <i th:if="${bm.logoUrl != null and !bm.logoUrl.isEmpty()}" th:style="'background-image:url(' + ${bm.logoUrl} + ');background-size:contain;background-repeat:no-repeat;background-position:center;display:inline-block;width:16px;height:16px;border-radius:2px;'"></i>
+                                    <i th:if="${bm.logoUrl == null or bm.logoUrl.isEmpty()}" class="bi bi-link-45deg"></i>
+                                    <span th:text="${bm.title}">链接</span>
+                                </a>
+                            </th:block>
+                        </th:block>
+                        <!-- 未登录：显示默认快捷链接 -->
+                        <th:block th:if="${#lists.size(homeBookmarks) == 0}">
+                            <a href="https://github.com" target="_blank"><i class="bi bi-github"></i> GitHub</a>
+                            <a href="https://translate.google.com" target="_blank"><i class="bi bi-translate"></i> 翻译</a>
+                            <a href="https://mail.qq.com" target="_blank"><i class="bi bi-envelope"></i> 邮箱</a>
+                            <a href="https://www.jd.com" target="_blank"><i class="bi bi-cart"></i> 京东</a>
+                            <a href="https://www.taobao.com" target="_blank"><i class="bi bi-bag"></i> 淘宝</a>
+                            <a href="https://www.bilibili.com" target="_blank"><i class="bi bi-play-btn"></i> B站</a>
+                            <a href="https://www.zhihu.com" target="_blank"><i class="bi bi-chat-dots"></i> 知乎</a>
+                        </th:block>
                     </div>
                 </div>
 

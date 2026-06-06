@@ -11,7 +11,6 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -38,15 +37,18 @@ public class JsonFileRepository<T> {
     private final List<T> data;
     private final AtomicLong idSeq;
     private final String idFieldName;
+    private final boolean prettyPrint;
 
     /**
      * @param file         JSON 文件路径
      * @param entityClass  实体类
+     * @param prettyPrint  是否使用美化输出（false 则紧凑输出以节省空间和 I/O）
      */
-    public JsonFileRepository(File file, Class<T> entityClass) {
+    public JsonFileRepository(File file, Class<T> entityClass, boolean prettyPrint) {
         this.file = file;
         this.entityClass = entityClass;
         this.idFieldName = "id";
+        this.prettyPrint = prettyPrint;
         // 读取已有数据或初始化空列表
         if (file.exists() && file.length() > 0) {
             try {
@@ -211,8 +213,11 @@ public class JsonFileRepository<T> {
         return page(pageNum, pageSize, t -> true);
     }
 
-    /** 条件分页查询 */
+    /** 条件分页查询（pageNum/pageSize 自动 clamp 到合法值） */
     public PageResult<T> page(int pageNum, int pageSize, Predicate<T> predicate) {
+        if (pageNum < 1) pageNum = 1;
+        if (pageSize < 1) pageSize = 10;
+
         List<T> filtered = data.stream()
                 .filter(e -> !isDeleted(e))
                 .filter(predicate)
@@ -226,9 +231,12 @@ public class JsonFileRepository<T> {
         return new PageResult<>(records, total, pageNum, pageSize);
     }
 
-    /** 排序分页查询 */
+    /** 排序分页查询（pageNum/pageSize 自动 clamp 到合法值） */
     public PageResult<T> pageOrderBy(int pageNum, int pageSize, Predicate<T> predicate,
                                      Comparator<T> comparator) {
+        if (pageNum < 1) pageNum = 1;
+        if (pageSize < 1) pageSize = 10;
+
         List<T> filtered = data.stream()
                 .filter(e -> !isDeleted(e))
                 .filter(predicate)
@@ -291,7 +299,11 @@ public class JsonFileRepository<T> {
     public synchronized void flush() {
         try {
             Files.createDirectories(file.getParentFile().toPath());
-            MAPPER.writerWithDefaultPrettyPrinter().writeValue(file, data);
+            if (prettyPrint) {
+                MAPPER.writerWithDefaultPrettyPrinter().writeValue(file, data);
+            } else {
+                MAPPER.writeValue(file, data);
+            }
         } catch (IOException e) {
             throw new RuntimeException("写入 JSON 文件失败: " + file.getAbsolutePath(), e);
         }
@@ -314,7 +326,6 @@ public class JsonFileRepository<T> {
 
     // ==================== 反射辅助 ====================
 
-    @SuppressWarnings("unchecked")
     private Long getIdValue(T entity) {
         try {
             Field field = entityClass.getDeclaredField(idFieldName);
