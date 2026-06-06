@@ -1,7 +1,0 @@
-spring:
-  application:
-    name: webmark
-  profiles:
-    active:
-      - dev
-

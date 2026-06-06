@@ -3,24 +3,18 @@ package com.cloud.self.webmark.security;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
-@Component
 public class JwtUtil {
 
     private final SecretKey key;
     private final long accessExpirationMs;
     private final long refreshExpirationMs;
 
-    public JwtUtil(
-            @Value("${webmark.jwt.secret:webmark-jwt-secret-key-2024-min-32bytes!!}") String secret,
-            @Value("${webmark.jwt.access-expiration-ms:1800000}") long accessExpirationMs,
-            @Value("${webmark.jwt.refresh-expiration-ms:604800000}") long refreshExpirationMs) {
+    public JwtUtil(String secret, long accessExpirationMs, long refreshExpirationMs) {
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.accessExpirationMs = accessExpirationMs;
         this.refreshExpirationMs = refreshExpirationMs;

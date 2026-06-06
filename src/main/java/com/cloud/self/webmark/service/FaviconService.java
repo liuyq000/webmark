@@ -5,8 +5,6 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -16,13 +14,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-@Service
 public class FaviconService {
 
     private static final Logger log = LoggerFactory.getLogger(FaviconService.class);
     private final Path faviconDir;
 
-    public FaviconService(@Value("${webmark.data.dir:./data}") String dataDir) {
+    public FaviconService(String dataDir) {
         this.faviconDir = Paths.get(dataDir, "favicons");
         try {
             Files.createDirectories(faviconDir);
@@ -31,25 +28,18 @@ public class FaviconService {
         }
     }
 
-    /**
-     * 异步抓取网站 favicon，保存到 data/favicons/，返回本地路径 /favicons/xxx.png
-     * @return 本地 favicon 路径，失败返回 null
-     */
     public String fetchAndSave(String pageUrl) {
         try {
             URL url = new URL(pageUrl);
             String domain = url.getHost();
 
-            // 1. 先检查是否已缓存（同域名复用）
             String existing = findCached(domain);
             if (existing != null) return existing;
 
-            // 2. 尝试直接下载 favicon.ico
             String directUrl = url.getProtocol() + "://" + domain + "/favicon.ico";
             byte[] iconData = downloadFavicon(directUrl);
             String ext = "ico";
 
-            // 3. 如果直接下载失败，Jsoup 解析页面找 <link rel="icon">
             if (iconData == null) {
                 String faviconUrl = extractFaviconFromPage(pageUrl);
                 if (faviconUrl != null) {
@@ -60,7 +50,6 @@ public class FaviconService {
 
             if (iconData == null || iconData.length == 0) return null;
 
-            // 4. 保存到 data/favicons/
             String filename = domain.replaceAll("[^a-zA-Z0-9.-]", "_") + "." + ext;
             Path dest = faviconDir.resolve(filename);
             Files.write(dest, iconData);
@@ -73,13 +62,13 @@ public class FaviconService {
         }
     }
 
-    /** 检查域名是否已有缓存 */
     private String findCached(String domain) {
         try {
             String[] files = faviconDir.toFile().list();
             if (files == null) return null;
+            String prefix = domain.replaceAll("[^a-zA-Z0-9.-]", "_") + ".";
             for (String file : files) {
-                if (file.startsWith(domain.replaceAll("[^a-zA-Z0-9.-]", "_") + ".")) {
+                if (file.startsWith(prefix)) {
                     return "/favicons/" + file;
                 }
             }
@@ -87,7 +76,6 @@ public class FaviconService {
         return null;
     }
 
-    /** HTTP GET 下载 favicon 二进制 */
     private byte[] downloadFavicon(String urlStr) {
         try {
             HttpURLConnection conn = (HttpURLConnection) new URL(urlStr).openConnection();
@@ -107,7 +95,6 @@ public class FaviconService {
         }
     }
 
-    /** Jsoup 解析页面找 favicon 链接 */
     private String extractFaviconFromPage(String pageUrl) {
         try {
             Document doc = Jsoup.connect(pageUrl)

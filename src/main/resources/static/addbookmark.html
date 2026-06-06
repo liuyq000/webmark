@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>添加书签 - 本地书签</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%234f6ef7' d='M2 2v13l6-3 6 3V2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1z'/%3E%3C/svg%3E">
+    <link href="/css/style.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container" style="margin-top:80px;max-width:600px">
+        <h4><i class="bi bi-plus-circle me-2"></i>添加书签</h4>
+        <form id="addBookmarkForm">
+            <div class="mb-3">
+                <label class="form-label">URL</label>
+                <input type="url" class="form-control" id="bmUrl" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">标题</label>
+                <input type="text" class="form-control" id="bmTitle">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">描述</label>
+                <textarea class="form-control" id="bmDescription" rows="2"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">保存</button>
+            <a href="/index.html" class="btn btn-outline-secondary ms-2">取消</a>
+        </form>
+    </div>
+    <script>
+    var params = new URLSearchParams(window.location.search);
+    if (params.get('url')) document.getElementById('bmUrl').value = params.get('url');
+    if (params.get('title')) document.getElementById('bmTitle').value = params.get('title');
+    if (params.get('description')) document.getElementById('bmDescription').value = params.get('description');
+
+    document.getElementById('addBookmarkForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        var token = localStorage.getItem('token');
+        if (!token) { alert('请先登录'); window.location.href = '/login.html'; return; }
+        fetch('/api/admin/bookmarks', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({
+                url: document.getElementById('bmUrl').value,
+                title: document.getElementById('bmTitle').value,
+                description: document.getElementById('bmDescription').value
+            })
+        }).then(function(r) { return r.json(); }).then(function(d) {
+            if (d.success) { alert('添加成功'); window.location.href = '/index.html'; }
+            else { alert('添加失败: ' + (d.message || '未知错误')); }
+        });
+    });
+    </script>
+</body>
+</html>

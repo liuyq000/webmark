@@ -2,26 +2,24 @@ package com.cloud.self.webmark.service;
 
 import com.cloud.self.webmark.config.DataStore;
 import com.cloud.self.webmark.entity.Folder;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@Service
-@RequiredArgsConstructor
 public class FolderService {
 
     private final DataStore dataStore;
 
-    /** 获取所有顶级文件夹（带子文件夹）——管理后台用 */
+    public FolderService(DataStore dataStore) {
+        this.dataStore = dataStore;
+    }
+
     public List<Folder> listTree() {
         List<Folder> all = dataStore.getFolderRepository().findAllSorted(Comparator.comparing(Folder::getSortOrder));
         return buildTree(all);
     }
 
-    /** 获取公共文件夹树（userId为null的）——匿名用户用 */
     public List<Folder> listPublicTree() {
         List<Folder> all = dataStore.getFolderRepository().findAllSorted(Comparator.comparing(Folder::getSortOrder))
                 .stream()
@@ -30,7 +28,6 @@ public class FolderService {
         return buildTree(all);
     }
 
-    /** 获取指定用户的文件夹树（含公共文件夹）——登录用户用 */
     public List<Folder> listTreeByUserId(Long userId) {
         List<Folder> all = dataStore.getFolderRepository().findAllSorted(Comparator.comparing(Folder::getSortOrder))
                 .stream()
@@ -39,7 +36,6 @@ public class FolderService {
         return buildTree(all);
     }
 
-    /** 获取指定顶级文件夹及其子文件夹 */
     public List<Folder> listTree(Long parentId) {
         Folder parent = getById(parentId);
         if (parent == null) return new ArrayList<>();
@@ -53,7 +49,6 @@ public class FolderService {
         return tree;
     }
 
-    /** 获取指定文件夹的所有后代ID（含自身） */
     public List<Long> getDescendantIds(Long folderId) {
         List<Long> ids = new ArrayList<>();
         ids.add(folderId);
@@ -95,24 +90,11 @@ public class FolderService {
         return children;
     }
 
-    public Folder getById(Long id) {
-        return dataStore.getFolderRepository().findById(id);
-    }
+    public Folder getById(Long id) { return dataStore.getFolderRepository().findById(id); }
+    public boolean save(Folder folder) { dataStore.getFolderRepository().save(folder); return true; }
+    public boolean updateById(Folder folder) { return dataStore.getFolderRepository().update(folder) != null; }
+    public boolean removeById(Long id) { return dataStore.getFolderRepository().deleteById(id); }
 
-    public boolean save(Folder folder) {
-        dataStore.getFolderRepository().save(folder);
-        return true;
-    }
-
-    public boolean updateById(Folder folder) {
-        return dataStore.getFolderRepository().update(folder) != null;
-    }
-
-    public boolean removeById(Long id) {
-        return dataStore.getFolderRepository().deleteById(id);
-    }
-
-    /** 删除文件夹及其所有后代文件夹（级联逻辑删除） */
     public int removeCascade(Long folderId) {
         List<Long> allIds = getDescendantIds(folderId);
         return dataStore.getFolderRepository().updateAll(
@@ -121,14 +103,10 @@ public class FolderService {
         );
     }
 
-    public long count() {
-        return dataStore.getFolderRepository().count();
-    }
+    public long count() { return dataStore.getFolderRepository().count(); }
 
-    /** 为新用户创建默认文件夹（首页、未读列表） */
     public void createDefaultFolders(Long userId) {
         LocalDateTime now = LocalDateTime.now();
-
         Folder home = new Folder();
         home.setName("首页");
         home.setNameEn("Home");

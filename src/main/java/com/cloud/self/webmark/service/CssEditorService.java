@@ -2,7 +2,6 @@ package com.cloud.self.webmark.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -10,17 +9,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
 
-/**
- * CSS 编辑器服务：处理拖拽编辑器的 CSS 读写、解析、替换逻辑。
- */
-@Service
 public class CssEditorService {
 
     private static final Logger log = LoggerFactory.getLogger(CssEditorService.class);
 
-    /**
-     * 保存 CSS 变更到 style.css（同时写入 target 目录以热加载生效）
-     */
     public void saveCssChanges(Map<String, Map<String, String>> changes) throws IOException {
         Path srcCss = Paths.get(System.getProperty("user.dir"), "src", "main", "resources", "static", "css", "style.css");
         Path targetCss = Paths.get(System.getProperty("user.dir"), "target", "classes", "static", "css", "style.css");

@@ -3,19 +3,17 @@ package com.cloud.self.webmark.service;
 import com.cloud.self.webmark.config.DataStore;
 import com.cloud.self.webmark.entity.User;
 import com.cloud.self.webmark.store.PageResult;
-import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
 import java.util.List;
 
-@Service
-@RequiredArgsConstructor
 public class UserService {
 
     private final DataStore dataStore;
-    private final PasswordEncoder passwordEncoder;
+
+    public UserService(DataStore dataStore) {
+        this.dataStore = dataStore;
+    }
 
     public User findByUserName(String userName) {
         return dataStore.getUserRepository().findOne(u -> userName.equals(u.getUserName()));
@@ -26,7 +24,7 @@ public class UserService {
     }
 
     public boolean register(User user) {
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        user.setPassword(PasswordUtil.encode(user.getPassword()));
         user.setRole("ROLE_USER");
         dataStore.getUserRepository().save(user);
         return true;
@@ -42,27 +40,10 @@ public class UserService {
                 Comparator.comparing(User::getCreateTime).reversed());
     }
 
-    public long count() {
-        return dataStore.getUserRepository().count();
-    }
-
-    public List<User> list() {
-        return dataStore.getUserRepository().findAll();
-    }
-
-    public User getById(Long id) {
-        return dataStore.getUserRepository().findById(id);
-    }
-
-    public User save(User user) {
-        return dataStore.getUserRepository().save(user);
-    }
-
-    public boolean updateById(User user) {
-        return dataStore.getUserRepository().update(user) != null;
-    }
-
-    public boolean removeById(Long id) {
-        return dataStore.getUserRepository().deleteById(id);
-    }
+    public long count() { return dataStore.getUserRepository().count(); }
+    public List<User> list() { return dataStore.getUserRepository().findAll(); }
+    public User getById(Long id) { return dataStore.getUserRepository().findById(id); }
+    public User save(User user) { return dataStore.getUserRepository().save(user); }
+    public boolean updateById(User user) { return dataStore.getUserRepository().update(user) != null; }
+    public boolean removeById(Long id) { return dataStore.getUserRepository().deleteById(id); }
 }

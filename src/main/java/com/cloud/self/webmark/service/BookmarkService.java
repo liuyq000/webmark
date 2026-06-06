@@ -3,8 +3,6 @@ package com.cloud.self.webmark.service;
 import com.cloud.self.webmark.config.DataStore;
 import com.cloud.self.webmark.entity.Bookmark;
 import com.cloud.self.webmark.store.PageResult;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -14,19 +12,19 @@ import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-@Service
-@RequiredArgsConstructor
 public class BookmarkService {
 
     private final DataStore dataStore;
 
-    /** 默认排序：sortOrder ASC → createTime DESC */
+    public BookmarkService(DataStore dataStore) {
+        this.dataStore = dataStore;
+    }
+
     private Comparator<Bookmark> defaultSort() {
         return Comparator.<Bookmark, Integer>comparing(b -> b.getSortOrder() != null ? b.getSortOrder() : 9999)
                 .thenComparing(Comparator.comparing(Bookmark::getCreateTime).reversed());
     }
 
-    /** 按文件夹ID列表查询公开书签 */
     public List<Bookmark> listPublicByFolderIds(List<Long> folderIds) {
         return dataStore.getBookmarkRepository().findAllSorted(defaultSort())
                 .stream()
@@ -35,7 +33,6 @@ public class BookmarkService {
                 .collect(Collectors.toList());
     }
 
-    /** 按单个文件夹ID查询公开书签 */
     public List<Bookmark> listPublicByFolderId(Long folderId) {
         return dataStore.getBookmarkRepository().findAllSorted(defaultSort())
                 .stream()
@@ -44,14 +41,6 @@ public class BookmarkService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * 构建书签搜索/过滤 Predicate，消除多处重复的 keyword 过滤代码。
-     *
-     * @param keyword    搜索关键词（标题/链接/描述/标签）
-     * @param folderId   单文件夹 ID 精确过滤
-     * @param folderIds  多文件夹 ID 列表过滤
-     * @param publicType 公开类型过滤（0=私密，1=公开）
-     */
     public static Predicate<Bookmark> buildFilter(String keyword, Long folderId, List<Long> folderIds, Integer publicType) {
         return b -> {
             boolean match = true;
@@ -74,14 +63,12 @@ public class BookmarkService {
         };
     }
 
-    /** 管理后台分页查询 */
     public PageResult<Bookmark> adminPage(int pageNum, int pageSize, String keyword, Long folderId, Integer publicType) {
         return dataStore.getBookmarkRepository().pageOrderBy(pageNum, pageSize,
                 buildFilter(keyword, folderId, null, publicType),
                 Comparator.comparing(Bookmark::getCreateTime).reversed());
     }
 
-    /** 管理后台分页查询（按文件夹及子文件夹） */
     public PageResult<Bookmark> adminPageByFolder(int pageNum, int pageSize, String keyword, Long folderId, Integer publicType, FolderService folderService) {
         List<Long> folderIds = folderId != null ? folderService.getDescendantIds(folderId) : null;
         return dataStore.getBookmarkRepository().pageOrderBy(pageNum, pageSize,
@@ -89,7 +76,6 @@ public class BookmarkService {
                 Comparator.comparing(Bookmark::getCreateTime).reversed());
     }
 
-    /** 搜索公开书签 */
     public List<Bookmark> searchPublic(String key) {
         String lowerKey = key.toLowerCase();
         return dataStore.getBookmarkRepository().findAllSorted(defaultSort())
@@ -101,12 +87,10 @@ public class BookmarkService {
                 .collect(Collectors.toList());
     }
 
-    /** 公开书签总数 */
     public long countPublic() {
         return dataStore.getBookmarkRepository().count(b -> b.getPublicType() == 1);
     }
 
-    /** 今日新增 */
     public long countToday() {
         LocalDate today = LocalDate.now();
         LocalDateTime start = today.atStartOfDay();
@@ -117,7 +101,6 @@ public class BookmarkService {
         });
     }
 
-    /** 热门书签 */
     public List<Bookmark> topHot(int limit) {
         return dataStore.getBookmarkRepository().top(limit,
                 Comparator.comparing(Bookmark::getCreateTime).reversed())
@@ -126,7 +109,6 @@ public class BookmarkService {
                 .collect(Collectors.toList());
     }
 
-    /** 按用户查询书签 */
     public List<Bookmark> listByUserId(Long userId) {
         return dataStore.getBookmarkRepository().findAllSorted(Comparator.comparing(Bookmark::getCreateTime).reversed())
                 .stream()
@@ -134,7 +116,6 @@ public class BookmarkService {
                 .collect(Collectors.toList());
     }
 
-    /** 按文件夹ID列表查询所有书签（不限制公开状态） */
     public List<Bookmark> listByFolderIds(List<Long> folderIds) {
         return dataStore.getBookmarkRepository().findAllSorted(defaultSort())
                 .stream()
@@ -142,28 +123,12 @@ public class BookmarkService {
                 .collect(Collectors.toList());
     }
 
-    public long count() {
-        return dataStore.getBookmarkRepository().count();
-    }
+    public long count() { return dataStore.getBookmarkRepository().count(); }
+    public Bookmark getById(Long id) { return dataStore.getBookmarkRepository().findById(id); }
+    public boolean save(Bookmark bookmark) { dataStore.getBookmarkRepository().save(bookmark); return true; }
+    public boolean updateById(Bookmark bookmark) { return dataStore.getBookmarkRepository().update(bookmark) != null; }
+    public boolean removeById(Long id) { return dataStore.getBookmarkRepository().deleteById(id); }
 
-    public Bookmark getById(Long id) {
-        return dataStore.getBookmarkRepository().findById(id);
-    }
-
-    public boolean save(Bookmark bookmark) {
-        dataStore.getBookmarkRepository().save(bookmark);
-        return true;
-    }
-
-    public boolean updateById(Bookmark bookmark) {
-        return dataStore.getBookmarkRepository().update(bookmark) != null;
-    }
-
-    public boolean removeById(Long id) {
-        return dataStore.getBookmarkRepository().deleteById(id);
-    }
-
-    /** 按文件夹ID列表批量逻辑删除书签 */
     public int removeByFolderIds(List<Long> folderIds) {
         if (folderIds == null || folderIds.isEmpty()) return 0;
         return dataStore.getBookmarkRepository().updateAll(

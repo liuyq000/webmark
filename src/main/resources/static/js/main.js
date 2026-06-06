@@ -57,6 +57,478 @@ function escapeHtml(str) {
     return div.innerHTML;
 }
 
+// ========== 首页数据加载（Javalin 模式） ==========
+async function loadSidebarAndShortcuts() {
+    try {
+        var folders = null;
+        var token = localStorage.getItem('token');
+        var headers = {};
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+
+        // 加载文件夹树
+        var folderResp = await fetch('/api/folders', { headers: headers });
+        if (folderResp.ok) {
+            folderTreeData = await folderResp.json();
+            renderSidebarFolders(folderTreeData);
+        }
+
+        // 加载首页书签快捷链接（登录后显示用户书签，未登录显示默认链接）
+        var links = document.getElementById('homeShortcutLinks');
+        if (links) {
+            if (token) {
+                try {
+                    var homeResp = await fetch('/api/home-bookmarks', { headers: headers });
+                    if (homeResp.ok) {
+                        var bookmarks = await homeResp.json();
+                        if (bookmarks.length > 0) {
+                            links.innerHTML = '';
+                            bookmarks.forEach(function(bm) {
+                                var a = document.createElement('a');
+                                a.href = bm.url; a.target = '_blank'; a.rel = 'noopener';
+                                var iconHtml = bm.logoUrl ? '<img src="' + bm.logoUrl + '" style="width:16px;height:16px;border-radius:2px;vertical-align:middle" onerror="this.style.display=\'none\'">' : '<i class="bi bi-link-45deg"></i>';
+                                a.innerHTML = iconHtml + ' <span>' + escapeHtml(bm.title || bm.url) + '</span>';
+                                links.appendChild(a);
+                            });
+                        }
+                    }
+                } catch(e) { /* ignore */ }
+            }
+            // 未登录或无首页书签时显示默认链接
+            if (!links.hasChildNodes()) {
+                links.innerHTML =
+                    '<a href="https://github.com" target="_blank"><i class="bi bi-github"></i> GitHub</a>' +
+                    '<a href="https://translate.google.com" target="_blank"><i class="bi bi-translate"></i> 翻译</a>' +
+                    '<a href="https://mail.qq.com" target="_blank"><i class="bi bi-envelope"></i> 邮箱</a>' +
+                    '<a href="https://www.jd.com" target="_blank"><i class="bi bi-cart"></i> 京东</a>' +
+                    '<a href="https://www.taobao.com" target="_blank"><i class="bi bi-bag"></i> 淘宝</a>' +
+                    '<a href="https://www.bilibili.com" target="_blank"><i class="bi bi-play-btn"></i> B站</a>' +
+                    '<a href="https://www.zhihu.com" target="_blank"><i class="bi bi-chat-dots"></i> 知乎</a>';
+            }
+        }
+    } catch (e) {
+        console.warn('加载数据失败', e);
+    }
+}
+
+function renderSidebarFolders(folders, parentEl) {
+    var list = parentEl || document.getElementById('sidebarFolderList');
+    if (!list) return;
+    if (!parentEl) list.innerHTML = '';
+    folders.forEach(function(f) {
+        var div = document.createElement('div');
+        div.className = parentEl ? 'sidebar-sub-folder-item' : 'sidebar-folder-item';
+        div.dataset.folderId = f.id;
+        div.onmouseenter = function() { showFolderFloat(this); };
+        var icon = f.icon || 'bi-folder-fill';
+        var hasChildren = f.children && f.children.length > 0;
+        var arrowHtml = hasChildren ? '<i class="bi bi-chevron-right sub-folder-arrow"></i>' : '';
+        div.innerHTML = arrowHtml + '<i class="bi ' + escapeHtml(icon) + '"></i><span class="sidebar-folder-name">' + escapeHtml(f.name) + '</span>';
+        list.appendChild(div);
+        if (hasChildren) {
+            renderSidebarFolders(f.children, list);
+        }
+    });
+}
+
+function toggleUserDropdown(e) {
+    if (e) e.stopPropagation();
+    var token = localStorage.getItem('token');
+    if (!token) { window.location.href = '/login.html'; return; }
+    var existing = document.getElementById('_userMenu');
+    if (existing) { existing.remove(); return; }
+    var menu = document.createElement('div');
+    menu.id = '_userMenu';
+    menu.style.position = 'fixed';
+    menu.style.top = '54px'; menu.style.right = '12px';
+    menu.style.minWidth = '180px';
+    menu.style.background = 'var(--card-bg)';
+    menu.style.border = '1px solid var(--border-color)';
+    menu.style.borderRadius = '12px';
+    menu.style.padding = '6px';
+    menu.style.boxShadow = '0 8px 28px rgba(0,0,0,0.14)';
+    menu.style.zIndex = '9999';
+    var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    var themeIcon = isDark ? 'bi-sun-fill' : 'bi-moon-stars-fill';
+    var themeText = isDark ? '亮色主题' : '暗色主题';
+    menu.innerHTML =
+        '<a href="javascript:;" onclick="closeUserMenu();showBmMgmt()" class="um-item"><i class="bi bi-bookmarks"></i>书签管理</a>' +
+        '<a href="javascript:;" onclick="closeUserMenu();showUserMgmt()" class="um-item"><i class="bi bi-person-gear"></i>用户管理</a>' +
+        '<a href="javascript:;" onclick="closeUserMenu();showCollectTool()" class="um-item"><i class="bi bi-globe"></i>网页收集工具</a>' +
+        '<a href="javascript:;" onclick="closeUserMenu();toggleTheme()" class="um-item"><i class="bi ' + themeIcon + '"></i><span>' + themeText + '</span></a>' +
+        '<a href="javascript:;" onclick="closeUserMenu();logoutUser()" class="um-item"><i class="bi bi-box-arrow-right"></i>退出登录</a>';
+    document.body.appendChild(menu);
+    setTimeout(function() { document.addEventListener('click', closeUserMenu, { once: true }); }, 10);
+}
+function closeUserMenu() {
+    var el = document.getElementById('_userMenu');
+    if (el) el.remove();
+}
+function logoutUser() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('username');
+    window.location.href = '/index.html';
+}
+
+// ========== 管理弹窗（书签管理/用户管理/收集工具） ==========
+function closeMgmtModal() {
+    var el = document.getElementById('_mgmtModal');
+    if (el) el.remove();
+}
+
+function showBmMgmt() {
+    var token = localStorage.getItem('token');
+    if (!token) { window.location.href = '/login.html'; return; }
+    var existing = document.getElementById('_mgmtModal');
+    if (existing) { existing.remove(); return; }
+    var modal = document.createElement('div');
+    modal.id = '_mgmtModal';
+    modal.style.cssText = 'display:block;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1050;';
+    var content = document.createElement('div');
+    content.className = 'mgmt-modal-content';
+    content.innerHTML =
+        '<div class="bm-modal-header"><h5><i class="bi bi-bookmarks me-2"></i>书签管理</h5>' +
+        '<button type="button" class="bm-modal-close" onclick="closeMgmtModal()"><i class="bi bi-x-lg"></i></button></div>' +
+        '<div class="mgmt-toolbar">' +
+        '<input class="mgmt-search-input" id="_mgmtSearch" placeholder="搜索标题/URL..." oninput="mgmtBmSearch(this.value)">' +
+        '<select id="_mgmtPublicFilter" onchange="mgmtBmLoad(1)"><option value="">全部类型</option><option value="1">公开</option><option value="0">私密</option></select>' +
+        '<button class="bm-btn bm-btn-primary" onclick="openBookmarkModal()" style="margin-left:auto;padding:6px 14px;font-size:13px"><i class="bi bi-plus"></i> 新建</button></div>' +
+        '<div class="mgmt-modal-body" id="_mgmtBody"><div class="mgmt-empty"><i class="bi bi-hourglass-split"></i><p>加载中...</p></div></div>' +
+        '<div class="mgmt-pagination" id="_mgmtPagination"></div>';
+    modal.appendChild(content);
+    document.body.appendChild(modal);
+    mgmtBmLoad(1);
+}
+
+var mgmtBmSearchTimer = null;
+function mgmtBmSearch(val) {
+    clearTimeout(mgmtBmSearchTimer);
+    mgmtBmSearchTimer = setTimeout(function() { mgmtBmLoad(1); }, 300);
+}
+
+async function mgmtBmLoad(page) {
+    var body = document.getElementById('_mgmtBody');
+    var pagination = document.getElementById('_mgmtPagination');
+    if (!body) return;
+    var token = localStorage.getItem('token');
+    if (!token) { body.innerHTML = '<div class="mgmt-empty"><i class="bi bi-exclamation-circle"></i><p>请先登录</p></div>'; return; }
+    var keyword = document.getElementById('_mgmtSearch') ? document.getElementById('_mgmtSearch').value.trim() : '';
+    var publicType = document.getElementById('_mgmtPublicFilter') ? document.getElementById('_mgmtPublicFilter').value : '';
+    var size = 15;
+    var url = '/api/admin/bookmarks?page=' + page + '&size=' + size;
+    if (keyword) url += '&keyword=' + encodeURIComponent(keyword);
+    if (publicType) url += '&publicType=' + publicType;
+    try {
+        var resp = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+        var data = await resp.json();
+        var records = data.records || [];
+        if (records.length === 0) {
+            body.innerHTML = '<div class="mgmt-empty"><i class="bi bi-inbox"></i><p>暂无书签</p></div>';
+            pagination.innerHTML = '';
+            return;
+        }
+        var html = '<table class="mgmt-table"><thead><tr><th>标题</th><th>URL</th><th>类型</th><th>操作</th></tr></thead><tbody>';
+        records.forEach(function(b) {
+            var typeHtml = b.publicType === 1 ? '<span class="mgmt-badge mgmt-badge-public">公开</span>' : '<span class="mgmt-badge mgmt-badge-private">私密</span>';
+            html += '<tr><td><strong>' + escapeHtml(b.title || '未命名') + '</strong></td>' +
+                '<td class="mgmt-url-cell"><a href="' + escapeHtml(b.url || '') + '" target="_blank">' + escapeHtml((b.url || '').substring(0, 50)) + '</a></td>' +
+                '<td>' + typeHtml + '</td>' +
+                '<td><button class="mgmt-action-btn edit-btn" onclick="bmMgmtEdit(' + b.id + ')"><i class="bi bi-pencil"></i> 编辑</button>' +
+                '<button class="mgmt-action-btn del-btn" onclick="bmMgmtDelete(' + b.id + ')"><i class="bi bi-trash"></i> 删除</button></td></tr>';
+        });
+        html += '</tbody></table>';
+        body.innerHTML = html;
+        // 分页
+        var totalPages = data.pages || 1;
+        var current = data.current || page;
+        var phtml = '<button onclick="mgmtBmLoad(1)"' + (current <= 1 ? ' disabled style="opacity:0.4"' : '') + '>首页</button>' +
+            '<button onclick="mgmtBmLoad(' + (current - 1) + ')"' + (current <= 1 ? ' disabled style="opacity:0.4"' : '') + '><i class="bi bi-chevron-left"></i></button>' +
+            '<span class="page-info">' + current + ' / ' + totalPages + '</span>' +
+            '<button onclick="mgmtBmLoad(' + (current + 1) + ')"' + (current >= totalPages ? ' disabled style="opacity:0.4"' : '') + '><i class="bi bi-chevron-right"></i></button>' +
+            '<button onclick="mgmtBmLoad(' + totalPages + ')"' + (current >= totalPages ? ' disabled style="opacity:0.4"' : '') + '>末页</button>';
+        pagination.innerHTML = phtml;
+    } catch(e) {
+        body.innerHTML = '<div class="mgmt-empty"><i class="bi bi-exclamation-circle"></i><p>加载失败</p></div>';
+    }
+}
+
+function bmMgmtEdit(id) {
+    var token = localStorage.getItem('token');
+    fetch('/api/admin/bookmarks?page=1&size=200', {
+        headers: { 'Authorization': 'Bearer ' + token }
+    }).then(function(r) { return r.json(); }).then(function(data) {
+        var records = data.records || [];
+        var found = records.find(function(b) { return Number(b.id) === Number(id); });
+        if (found) openBookmarkModal(found);
+        else alert('未找到该书签数据');
+    }).catch(function() { alert('加载书签数据失败'); });
+}
+
+async function bmMgmtDelete(id) {
+    if (!confirm('确定删除此书签吗?')) return;
+    var token = localStorage.getItem('token');
+    try {
+        var resp = await fetch('/api/admin/bookmarks/' + id, {
+            method: 'DELETE',
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        var data = await resp.json();
+        if (data.success) { mgmtBmLoad(1); }
+        else { alert('删除失败: ' + (data.message || '')); }
+    } catch(e) { alert('删除失败'); }
+}
+
+// ========== 用户管理弹窗 ==========
+function showUserMgmt() {
+    var token = localStorage.getItem('token');
+    if (!token) { window.location.href = '/login.html'; return; }
+    var existing = document.getElementById('_mgmtModal');
+    if (existing) { existing.remove(); return; }
+    var modal = document.createElement('div');
+    modal.id = '_mgmtModal';
+    modal.style.cssText = 'display:block;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1050;';
+    var content = document.createElement('div');
+    content.className = 'mgmt-modal-content';
+    content.innerHTML =
+        '<div class="bm-modal-header"><h5><i class="bi bi-people me-2"></i>用户管理</h5>' +
+        '<button type="button" class="bm-modal-close" onclick="closeMgmtModal()"><i class="bi bi-x-lg"></i></button></div>' +
+        '<div class="mgmt-toolbar">' +
+        '<input class="mgmt-search-input" id="_userSearch" placeholder="搜索用户名..." oninput="mgmtUserSearch(this.value)">' +
+        '</div>' +
+        '<div class="mgmt-modal-body" id="_mgmtUserBody"><div class="mgmt-empty"><i class="bi bi-hourglass-split"></i><p>加载中...</p></div></div>' +
+        '<div class="mgmt-pagination" id="_mgmtUserPagination"></div>';
+    modal.appendChild(content);
+    document.body.appendChild(modal);
+    mgmtUserLoad(1);
+}
+
+var mgmtUserSearchTimer = null;
+function mgmtUserSearch(val) {
+    clearTimeout(mgmtUserSearchTimer);
+    mgmtUserSearchTimer = setTimeout(function() { mgmtUserLoad(1); }, 300);
+}
+
+async function mgmtUserLoad(page) {
+    var body = document.getElementById('_mgmtUserBody');
+    var pagination = document.getElementById('_mgmtUserPagination');
+    if (!body) return;
+    var token = localStorage.getItem('token');
+    if (!token) { body.innerHTML = '<div class="mgmt-empty"><i class="bi bi-exclamation-circle"></i><p>请先登录</p></div>'; return; }
+    var keyword = document.getElementById('_userSearch') ? document.getElementById('_userSearch').value.trim() : '';
+    var url = '/admin/api/user/list?pageNum=' + page + '&pageSize=10';
+    if (keyword) url += '&keyword=' + encodeURIComponent(keyword);
+    try {
+        var resp = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+        var data = await resp.json();
+        if (!data.success) { body.innerHTML = '<div class="mgmt-empty"><i class="bi bi-exclamation-circle"></i><p>' + (data.message || '加载失败') + '</p></div>'; return; }
+        var list = data.data.list || [];
+        var total = data.data.total || 0;
+        if (list.length === 0) {
+            body.innerHTML = '<div class="mgmt-empty"><i class="bi bi-people"></i><p>暂无用户</p></div>';
+            pagination.innerHTML = '';
+            return;
+        }
+        var currentUser = localStorage.getItem('username') || '';
+        var html = '<table class="mgmt-table"><thead><tr><th>ID</th><th>用户名</th><th>邮箱</th><th>角色</th><th>操作</th></tr></thead><tbody>';
+        list.forEach(function(u) {
+            var isAdmin = u.role === 'ROLE_ADMIN';
+            var isSelf = u.userName === currentUser;
+            var roleHtml = isAdmin ? '<span class="mgmt-badge mgmt-badge-admin">管理员</span>' : '<span class="mgmt-badge mgmt-badge-user">用户</span>';
+            html += '<tr><td>' + u.id + '</td><td><strong>' + escapeHtml(u.userName || '') + '</strong>' + (isSelf ? ' <span style="font-size:11px;color:#999">(当前)</span>' : '') + '</td>' +
+                '<td style="color:var(--text-secondary)">' + escapeHtml(u.email || '-') + '</td>' +
+                '<td>' + roleHtml + '</td>' +
+                '<td>' +
+                '<button class="mgmt-action-btn edit-btn" onclick="mgmtUserEdit(' + u.id + ',\'' + encodeURIComponent(JSON.stringify(u)) + '\')"><i class="bi bi-pencil"></i></button>' +
+                (isAdmin && list.length <= 1 ? '' : '<button class="mgmt-action-btn del-btn" onclick="mgmtUserDel(' + u.id + ',\'' + escapeHtml(u.userName || '') + '\')"><i class="bi bi-trash"></i></button>') +
+                '</td></tr>';
+        });
+        html += '</tbody></table>';
+        body.innerHTML = html;
+        var totalPages = Math.ceil(total / 10) || 1;
+        var phtml = '<button onclick="mgmtUserLoad(1)"' + (page <= 1 ? ' disabled style="opacity:0.4"' : '') + '>首页</button>' +
+            '<button onclick="mgmtUserLoad(' + (page - 1) + ')"' + (page <= 1 ? ' disabled style="opacity:0.4"' : '') + '><i class="bi bi-chevron-left"></i></button>' +
+            '<span class="page-info">' + page + ' / ' + totalPages + '</span>' +
+            '<button onclick="mgmtUserLoad(' + (page + 1) + ')"' + (page >= totalPages ? ' disabled style="opacity:0.4"' : '') + '><i class="bi bi-chevron-right"></i></button>' +
+            '<button onclick="mgmtUserLoad(' + totalPages + ')"' + (page >= totalPages ? ' disabled style="opacity:0.4"' : '') + '>末页</button>';
+        pagination.innerHTML = phtml;
+    } catch(e) {
+        body.innerHTML = '<div class="mgmt-empty"><i class="bi bi-exclamation-circle"></i><p>加载失败</p></div>';
+    }
+}
+
+function mgmtUserEdit(id, encodedJson) {
+    try {
+        var u = JSON.parse(decodeURIComponent(encodedJson));
+        var newRole = u.role === 'ROLE_ADMIN' ? 'ROLE_USER' : 'ROLE_ADMIN';
+        if (!confirm('确认将用户 "' + u.userName + '" 的角色切换为 ' + (newRole === 'ROLE_ADMIN' ? '管理员' : '普通用户') + ' 吗？')) return;
+        var token = localStorage.getItem('token');
+        fetch('/admin/api/user/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ id: u.id, userName: u.userName, email: u.email, role: newRole })
+        }).then(function(r) { return r.json(); }).then(function(d) {
+            if (d.success) { alert('更新成功'); mgmtUserLoad(1); }
+            else { alert('更新失败: ' + (d.message || '')); }
+        }).catch(function(e) { alert('更新失败'); });
+    } catch(e) { alert('数据解析失败'); }
+}
+
+function mgmtUserDel(id, userName) {
+    if (!confirm('确定删除用户 "' + userName + '" 吗？')) return;
+    var token = localStorage.getItem('token');
+    fetch('/admin/api/user/delete?id=' + id, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token }
+    }).then(function(r) { return r.json(); }).then(function(d) {
+        if (d.success) { alert('删除成功'); mgmtUserLoad(1); }
+        else { alert('删除失败: ' + (d.message || '')); }
+    }).catch(function(e) { alert('删除失败'); });
+}
+
+// ========== 网页收集工具弹窗 ==========
+function showCollectTool() {
+    var existing = document.getElementById('_mgmtModal');
+    if (existing) { existing.remove(); return; }
+    var modal = document.createElement('div');
+    modal.id = '_mgmtModal';
+    modal.style.cssText = 'display:block;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1050;';
+    var content = document.createElement('div');
+    content.className = 'mgmt-modal-content';
+    content.style.maxWidth = '600px';
+    content.innerHTML =
+        '<div class="bm-modal-header"><h5><i class="bi bi-globe me-2"></i>网页收集工具</h5>' +
+        '<button type="button" class="bm-modal-close" onclick="closeMgmtModal()"><i class="bi bi-x-lg"></i></button></div>' +
+        '<div class="bm-modal-body">' +
+        '<div style="border:2px dashed var(--border-color);border-radius:12px;padding:32px;text-align:center">' +
+        '<i class="bi bi-bookmark-plus" style="font-size:40px;color:var(--primary);display:block;margin-bottom:12px"></i>' +
+        '<h6 style="margin-bottom:16px">一键收藏到本地书签</h6>' +
+        '<p style="font-size:13px;color:var(--text-secondary);margin-bottom:20px">将下方按钮拖到浏览器书签栏，浏览任意网页时点击即可快速收藏</p>' +
+        '<a class="bm-btn bm-btn-primary" style="padding:12px 28px;font-size:16px" href="javascript:(function(){var d;var ds=\'\';var m=document.getElementsByTagName(\'meta\');for(var x=0,y=m.length;x<y;x++){if(m[x].name.toLowerCase()==\'description\'){d=m[x];}}if(d){ds=\'&description=\'+encodeURIComponent(d.content);}window.open(\'/addbookmark.html?url=\'+encodeURIComponent(document.URL)+ds+\'&title=\'+encodeURIComponent(document.title),\'_blank\');})();">' +
+        '<i class="bi bi-bookmark-plus me-2"></i>收藏到本地书签</a>' +
+        '<p class="mt-3" style="font-size:12px;color:#999">拖到浏览器书签栏使用，支持自动获取页面标题和描述</p></div>' +
+        '<div class="mt-3" style="background:var(--main-bg);border-radius:10px;padding:16px">' +
+        '<h6 style="font-size:14px;margin-bottom:8px"><i class="bi bi-info-circle me-1"></i> 使用说明</h6>' +
+        '<ol style="font-size:13px;color:var(--text-secondary);padding-left:20px;line-height:1.8">' +
+        '<li>将上方按钮 <strong>拖动</strong> 到浏览器的书签栏</li>' +
+        '<li>在任意网页浏览时，点击该书签</li>' +
+        '<li>会自动弹出添加页面，URL 和标题已自动填写</li>' +
+        '<li>补充信息后保存即可</li></ol></div>' +
+        '</div>';
+    modal.appendChild(content);
+    document.body.appendChild(modal);
+}
+
+// ========== 主题切换 ==========
+function toggleTheme() {
+    var html = document.documentElement;
+    var isDark = html.getAttribute('data-theme') === 'dark';
+    html.setAttribute('data-theme', isDark ? '' : 'dark');
+    localStorage.setItem('theme', isDark ? 'light' : 'dark');
+}
+
+// ========== 初始化主题 ==========
+(function() {
+    var saved = localStorage.getItem('theme');
+    if (saved === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+    }
+})();
+
+// ========== 新建书签模态框 ==========
+function openBookmarkModal(editData) {
+    var token = localStorage.getItem('token');
+    if (!token) { window.location.href = '/login.html'; return; }
+    var existing = document.getElementById('_bookmarkModal');
+    if (existing) { existing.remove(); return; }
+    var isEdit = !!editData;
+    var modal = document.createElement('div');
+    modal.id = '_bookmarkModal';
+    modal.style.cssText = 'display:block;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1050;';
+    var content = document.createElement('div');
+    content.className = 'bm-modal-content';
+    content.innerHTML =
+        '<div class="bm-modal-header">' +
+        '<h5><i class="bi ' + (isEdit ? 'bi-pencil-square' : 'bi-plus-circle') + ' me-2"></i>' + (isEdit ? '编辑书签' : '新建书签') + '</h5>' +
+        '<button type="button" class="bm-modal-close" onclick="closeBookmarkModal()"><i class="bi bi-x-lg"></i></button></div>' +
+        '<div class="bm-modal-body">' +
+        '<div class="bm-field"><label>URL <span class="bm-required">*</span></label><input id="_bmUrl" class="bm-input" value="' + escapeHtml(editData ? (editData.url || '') : '') + '" placeholder="https://example.com"></div>' +
+        '<div class="bm-field"><label>标题</label><input id="_bmTitle" class="bm-input" value="' + escapeHtml(editData ? (editData.title || '') : '') + '" placeholder="书签名称"></div>' +
+        '<div class="bm-field"><label>描述</label><textarea id="_bmDesc" class="bm-input bm-textarea" rows="2" placeholder="简短描述">' + escapeHtml(editData ? (editData.description || '') : '') + '</textarea></div>' +
+        '<div class="bm-field"><label>Logo URL</label><input id="_bmLogo" class="bm-input" value="' + escapeHtml(editData ? (editData.logoUrl || '') : '') + '" placeholder="可选，图标地址"></div>' +
+        '<div class="bm-field"><label>所属文件夹</label><select id="_bmFolder" class="bm-input"><option value="">无</option></select></div>' +
+        '<div class="bm-field"><label>标签</label><input id="_bmTags" class="bm-input" value="' + escapeHtml(editData ? (editData.tags || '') : '') + '" placeholder="多个标签用逗号分隔"></div>' +
+        '<div class="bm-field"><label>可见性</label>' +
+        '<div class="bm-toggle-group"><label class="bm-toggle-label"><input type="radio" name="bmPublic" value="1"' + ((!editData || editData.publicType === 1) ? ' checked' : '') + '><span>公开</span></label>' +
+        '<label class="bm-toggle-label"><input type="radio" name="bmPublic" value="0"' + (editData && editData.publicType === 0 ? ' checked' : '') + '><span>私密</span></label></div></div>' +
+        '</div>' +
+        '<div class="bm-modal-footer"><button class="bm-btn bm-btn-secondary" onclick="closeBookmarkModal()">取消</button>' +
+        '<button class="bm-btn bm-btn-primary" onclick="submitBookmarkModal(' + (isEdit ? editData.id : 'null') + ')"><i class="bi bi-check"></i> ' + (isEdit ? '更新' : '保存') + '</button></div>';
+    modal.appendChild(content);
+    document.body.appendChild(modal);
+    // 加载文件夹列表
+    loadBookmarkModalFolders(editData ? editData.folderId : null);
+}
+function loadBookmarkModalFolders(selectedId) {
+    fetch('/api/folders').then(function(r) { return r.json(); }).then(function(folders) {
+        var sel = document.getElementById('_bmFolder');
+        if (!sel) return;
+        sel.innerHTML = '<option value="">无</option>';
+        function addOptions(list, prefix) {
+            list.forEach(function(f) {
+                var opt = document.createElement('option');
+                opt.value = f.id;
+                opt.textContent = (prefix || '') + f.name;
+                if (selectedId && Number(selectedId) === Number(f.id)) opt.selected = true;
+                sel.appendChild(opt);
+                if (f.children && f.children.length > 0) {
+                    addOptions(f.children, (prefix || '') + '── ');
+                }
+            });
+        }
+        addOptions(folders, '');
+    }).catch(function() {});
+}
+function closeBookmarkModal() {
+    var el = document.getElementById('_bookmarkModal');
+    if (el) el.remove();
+}
+async function submitBookmarkModal(editId) {
+    var token = localStorage.getItem('token');
+    if (!token) { alert('请先登录'); return; }
+    var url = document.getElementById('_bmUrl').value.trim();
+    if (!url) { alert('请输入URL'); return; }
+    var title = document.getElementById('_bmTitle').value.trim();
+    var desc = document.getElementById('_bmDesc').value.trim();
+    var logoUrl = document.getElementById('_bmLogo').value.trim();
+    var folderId = document.getElementById('_bmFolder').value;
+    var tags = document.getElementById('_bmTags').value.trim();
+    var publicRadio = document.querySelector('input[name="bmPublic"]:checked');
+    var publicType = publicRadio ? parseInt(publicRadio.value) : 1;
+    var body = { url: url, title: title, description: desc, logoUrl: logoUrl, tags: tags, publicType: publicType };
+    if (folderId) body.folderId = parseInt(folderId);
+    try {
+        var urlPath = '/api/admin/bookmarks';
+        var method = 'POST';
+        if (editId) { urlPath += '/' + editId; method = 'PUT'; }
+        var resp = await fetch(urlPath, {
+            method: method,
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify(body)
+        });
+        var data = await resp.json();
+        if (data.success) { closeBookmarkModal(); alert(editId ? '更新成功' : '添加成功'); }
+        else { alert('操作失败: ' + (data.message || '未知错误')); }
+    } catch(e) { alert('操作失败: ' + e.message); }
+}
+
+// ========== 关闭模态框（点击背景） ==========
+document.addEventListener('click', function(e) {
+    var bm = document.getElementById('_bookmarkModal');
+    if (bm && e.target === bm) closeBookmarkModal();
+    var mm = document.getElementById('_mgmtModal');
+    if (mm && e.target === mm) closeMgmtModal();
+});
+
 function highlightText(text, keyword) {
     if (!keyword || !text) return escapeHtml(text || '');
     var escaped = escapeHtml(text);
@@ -67,14 +539,35 @@ function highlightText(text, keyword) {
 
 // ========== 文件夹浮层面板 ==========
 var floatTimer = null;
-function showFolderFloat(el) {
+var floatFolderId = null;
+async function showFolderFloat(el) {
     clearTimeout(floatTimer);
     var panel = document.getElementById('folderFloatPanel');
-    var content = el.querySelector('.folder-float-content');
-    if (content) {
-        panel.innerHTML = content.innerHTML;
-    } else {
-        panel.innerHTML = '<div class="float-empty">暂无书签</div>';
+    var fid = el.dataset.folderId;
+    if (!fid) { panel.innerHTML = '<div class="float-empty">暂无书签</div>'; panel.classList.add('show'); return; }
+    // 仅当切换文件夹时才重新加载
+    if (floatFolderId !== fid) {
+        floatFolderId = fid;
+        panel.innerHTML = '<div class="float-empty" style="padding:12px"><i class="bi bi-hourglass-split"></i> 加载中...</div>';
+        panel.classList.add('show');
+        try {
+            var resp = await fetch('/api/bookmarks?folderId=' + fid);
+            var data = await resp.json();
+            var bms = data.bookmarks || [];
+            if (bms.length === 0) {
+                panel.innerHTML = '<div class="float-empty">暂无书签</div>';
+            } else {
+                var html = '<div class="float-links">';
+                bms.forEach(function(b) {
+                    var icon = b.logoUrl ? '<img src="' + b.logoUrl + '" class="bm-link-icon" onerror="this.style.display=\'none\'">' : '<span class="bm-link-fallback">' + (b.title ? b.title.charAt(0) : 'W') + '</span>';
+                    html += '<a href="' + b.url + '" target="_blank" rel="noopener" class="bm-link">' + icon + '<span class="bm-link-title">' + escapeHtml(b.title || b.url) + '</span></a>';
+                });
+                html += '</div>';
+                panel.innerHTML = html;
+            }
+        } catch(e) {
+            panel.innerHTML = '<div class="float-empty">加载失败</div>';
+        }
     }
     panel.classList.add('show');
     document.querySelectorAll('.sidebar-folder-item').forEach(function(item) { item.style.background = ''; });
@@ -137,6 +630,28 @@ document.addEventListener('click', function(e) {
 });
 
 document.addEventListener('DOMContentLoaded', function () {
+    // ===== Javalin 模式：初始化数据 =====
+    var folderTreeData = [];
+    (function initApp() {
+        var token = localStorage.getItem('token');
+        var username = localStorage.getItem('username');
+        // 渲染登录状态
+        var actions = document.getElementById('headerActions');
+        if (actions) {
+            if (token && username) {
+                actions.innerHTML = '<a class="header-btn" href="javascript:;" onclick="openBookmarkModal()"><i class="bi bi-plus-circle"></i> 新建书签</a>' +
+                    '<div id="userDropdown" class="header-user-dropdown">' +
+                    '<button type="button" class="user-btn" onclick="toggleUserDropdown(event)">' +
+                    '<i class="bi bi-person-circle"></i><span class="user-btn-name">' + escapeHtml(username) + '</span><i class="bi bi-caret-down-fill"></i>' +
+                    '</button></div>';
+            } else {
+                actions.innerHTML = '<a class="header-btn" href="/login.html">登录</a><a class="header-btn" href="/register.html">注册</a>';
+            }
+        }
+        // 加载左侧文件夹树 + 快捷链接
+        loadSidebarAndShortcuts();
+    })();
+
     // 移动端侧边栏
     const sidebar = document.getElementById('sidebar');
     const sidebarToggle = document.getElementById('sidebarToggle');
@@ -517,161 +1032,6 @@ document.addEventListener('DOMContentLoaded', function () {
             }, 300);
         });
     }
-
-    // =================== 新建书签 Modal ===================
-    window.openBookmarkModal = function () {
-        var modal = document.getElementById('bookmarkModal');
-        if (!modal) return;
-        document.getElementById('bookmarkId').value = '';
-        document.getElementById('bookmarkModalTitle').textContent = '新建书签';
-        document.getElementById('bookmarkTitle').value = '';
-        document.getElementById('bookmarkUrl').value = '';
-        document.getElementById('bookmarkDescription').value = '';
-        document.getElementById('bookmarkLogoUrl').value = '';
-        document.getElementById('bookmarkTags').value = '';
-        var publicType1 = document.querySelector('input[name="bookmarkPublicType"][value="1"]');
-        if (publicType1) publicType1.checked = true;
-        buildBookmarkTreeSelector(null);
-        new bootstrap.Modal(modal).show();
-    };
-
-    window.buildBookmarkTreeSelector = function (selectedFolderId) {
-        var dropdown = document.getElementById('bookmarkTreeSelectDropdown');
-        var hidden = document.getElementById('bookmarkFolderId');
-        var label = document.getElementById('bookmarkFolderLabel');
-        if (!dropdown || !hidden) return;
-
-        function setLabel(val, text) {
-            hidden.value = val;
-            label.textContent = text;
-        }
-        if (!selectedFolderId) {
-            setLabel('', '请选择文件夹');
-        } else {
-            (function findName(folders) {
-                for (var i = 0; i < folders.length; i++) {
-                    var f = folders[i];
-                    if (f.id == selectedFolderId) { setLabel(f.id, f.name); return; }
-                    if (f.children) findName(f.children);
-                }
-            })(folderTreeData || []);
-        }
-
-        dropdown.innerHTML = '';
-        if (typeof folderTreeData === 'undefined') return;
-
-        function renderTree(folders, level, parentEl) {
-            var container = parentEl || dropdown;
-            folders.forEach(function (f) {
-                var hasChildren = f.children && f.children.length > 0;
-                var div = document.createElement('div');
-                div.className = 'tree-select-item' + (f.id == selectedFolderId ? ' select-selected' : '');
-                div.style.paddingLeft = (12 + level * 20) + 'px';
-
-                var toggleSpan = document.createElement('span');
-                if (hasChildren) {
-                    toggleSpan.className = 'ts-toggle';
-                    toggleSpan.innerHTML = '<i class="bi bi-chevron-down"></i>';
-                    toggleSpan.onclick = function (e) {
-                        e.stopPropagation();
-                        var cd = div.nextElementSibling;
-                        if (cd && cd.classList.contains('tree-select-children')) {
-                            var h = cd.style.display === 'none';
-                            cd.style.display = h ? '' : 'none';
-                            toggleSpan.querySelector('i').className = h ? 'bi bi-chevron-down' : 'bi bi-chevron-right';
-                        }
-                    };
-                } else {
-                    toggleSpan.className = 'ts-empty';
-                }
-                div.appendChild(toggleSpan);
-
-                var nameSpan = document.createElement('span');
-                nameSpan.className = 'ts-name';
-                nameSpan.textContent = f.name;
-                div.appendChild(nameSpan);
-
-                div.onclick = function () {
-                    setLabel(f.id, f.name);
-                    dropdown.querySelectorAll('.select-selected').forEach(function (el) { el.classList.remove('select-selected'); });
-                    div.classList.add('select-selected');
-                    closeBookmarkTreePanel();
-                };
-                container.appendChild(div);
-
-                if (hasChildren) {
-                    var cd = document.createElement('div');
-                    cd.className = 'tree-select-children';
-                    cd.style.display = 'none';
-                    container.appendChild(cd);
-                    renderTree(f.children, level + 1, cd);
-                }
-            });
-        }
-        renderTree(folderTreeData, 0);
-    };
-
-    window.toggleBookmarkTreePanel = function () {
-        var dd = document.getElementById('bookmarkTreeSelectDropdown');
-        if (dd) dd.classList.toggle('open');
-    };
-
-    window.closeBookmarkTreePanel = function () {
-        var dd = document.getElementById('bookmarkTreeSelectDropdown');
-        if (dd) dd.classList.remove('open');
-    };
-
-    document.addEventListener('click', function (e) {
-        if (!e.target.closest('#bookmarkTreeSelectDropdown, .tree-select-input')) {
-            var dd = document.getElementById('bookmarkTreeSelectDropdown');
-            if (dd) dd.classList.remove('open');
-        }
-    });
-
-    window.submitBookmarkFromModal = function () {
-        var id = document.getElementById('bookmarkId').value;
-        var title = document.getElementById('bookmarkTitle').value.trim();
-        var url = document.getElementById('bookmarkUrl').value.trim();
-
-        if (!title) { alert('请输入标题'); return; }
-        if (!url) { alert('请输入URL'); return; }
-        if (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('/')) {
-            alert('请输入有效的URL（以 http:// 或 https:// 开头）');
-            return;
-        }
-
-        var folderId = document.getElementById('bookmarkFolderId').value;
-        var description = document.getElementById('bookmarkDescription').value.trim();
-        var logoUrl = document.getElementById('bookmarkLogoUrl').value.trim();
-        var tags = document.getElementById('bookmarkTags').value.trim();
-        var publicTypeRadio = document.querySelector('input[name="bookmarkPublicType"]:checked');
-        if (!publicTypeRadio) { alert('请选择类型（公开/私密）'); return; }
-        var publicType = parseInt(publicTypeRadio.value);
-
-        var body = {
-            title: title, url: url,
-            folderId: folderId ? Number(folderId) : null,
-            description: description, logoUrl: logoUrl,
-            tags: tags, publicType: publicType
-        };
-
-        fetch('/api/admin/bookmarks', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-        }).then(function (resp) {
-            if (resp.ok) {
-                bootstrap.Modal.getInstance(document.getElementById('bookmarkModal')).hide();
-                location.reload();
-            } else {
-                return resp.json().then(function (err) {
-                    alert('保存失败：' + (err.message || '服务器错误'));
-                });
-            }
-        }).catch(function () {
-            alert('保存失败：网络错误');
-        });
-    };
 
     // ========== 前台卡片拖动排序 ==========
     var frontendDragged = null;

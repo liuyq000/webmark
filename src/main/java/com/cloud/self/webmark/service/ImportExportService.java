@@ -6,43 +6,35 @@ import com.cloud.self.webmark.entity.User;
 import com.cloud.self.webmark.utils.HtmlUtil;
 import com.cloud.self.webmark.utils.HtmlUtil.BookmarkNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 
+import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/**
- * 书签导入导出服务，从 AdminController 抽取的业务逻辑。
- */
-@Service
-@RequiredArgsConstructor
 public class ImportExportService {
-
-    private static final Logger log = LoggerFactory.getLogger(ImportExportService.class);
 
     private final BookmarkService bookmarkService;
     private final FolderService folderService;
     private final FaviconService faviconService;
 
+    public ImportExportService(BookmarkService bookmarkService, FolderService folderService, FaviconService faviconService) {
+        this.bookmarkService = bookmarkService;
+        this.folderService = folderService;
+        this.faviconService = faviconService;
+    }
+
     // ==================== 导入 ====================
 
-    /**
-     * 导入书签文件
-     * @return Map 包含 success, message, count
-     */
-    public Map<String, Object> importBookmarks(MultipartFile htmlFile, String structure, String type, User user) throws Exception {
+    public Map<String, Object> importBookmarks(InputStream htmlStream, String structure, String type, User user) throws Exception {
         Map<String, Object> result = new HashMap<>();
         int savedCount;
 
         if ("YES".equals(structure)) {
-            List<BookmarkNode> tree = HtmlUtil.parseTree(htmlFile.getInputStream());
+            List<BookmarkNode> tree = HtmlUtil.parseTree(htmlStream);
             savedCount = importTree(tree, user, type);
         } else {
-            Map<String, String> flat = HtmlUtil.parseFlat(htmlFile.getInputStream());
+            Map<String, String> flat = HtmlUtil.parseFlat(htmlStream);
             savedCount = importFlat(flat, user, type);
         }
 
@@ -145,10 +137,6 @@ public class ImportExportService {
 
     // ==================== 导出 ====================
 
-    /**
-     * 导出书签
-     * @return ExportResult 包含 content, filename, contentType
-     */
     public ExportResult prepareExport(String scope, String format, String folderIds, User user) throws Exception {
         List<Bookmark> bookmarks;
         if ("private".equals(scope)) {
@@ -201,19 +189,13 @@ public class ImportExportService {
         private final String content;
         private final String filename;
         private final String contentType;
-
         public ExportResult(String content, String filename, String contentType) {
-            this.content = content;
-            this.filename = filename;
-            this.contentType = contentType;
+            this.content = content; this.filename = filename; this.contentType = contentType;
         }
-
         public String getContent() { return content; }
         public String getFilename() { return filename; }
         public String getContentType() { return contentType; }
     }
-
-    // ==================== 导出工具方法 ====================
 
     private Map<Long, String> buildFolderNameMap(List<Folder> folders) {
         Map<Long, String> map = new LinkedHashMap<>();
@@ -264,12 +246,8 @@ public class ImportExportService {
         return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
     }
 
-    // ==================== Favicon ====================
-
     public void batchFetchFavicons(User user) {
-        try {
-            Thread.sleep(500); // 等待导入写入完成
-        } catch (InterruptedException ignored) { return; }
+        try { Thread.sleep(500); } catch (InterruptedException ignored) { return; }
         try {
             List<Bookmark> bookmarks = bookmarkService.listByUserId(user.getId());
             for (Bookmark b : bookmarks) {
@@ -283,15 +261,7 @@ public class ImportExportService {
                 } catch (Exception ignored) {}
             }
         } catch (Exception e) {
-            log.debug("批量抓取 favicon 异常: {}", e.getMessage());
+            // ignored
         }
-    }
-
-    // MultipartFile 仅在导入时用到，这里作为内部接口
-    public interface MultipartFile {
-        String getOriginalFilename();
-        java.io.InputStream getInputStream() throws Exception;
-        boolean isEmpty();
-        long getSize();
     }
 }

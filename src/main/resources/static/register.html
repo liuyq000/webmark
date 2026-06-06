@@ -1,13 +1,12 @@
 <!DOCTYPE html>
-<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>登录 - 本地书签</title>
-    <link th:href="@{/webjars/bootstrap/css/bootstrap.min.css}" rel="stylesheet">
-    <link th:href="@{/webjars/bootstrap-icons/font/bootstrap-icons.css}" rel="stylesheet">
+    <title>注册 - 本地书签</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%234f6ef7' d='M2 2v13l6-3 6 3V2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1z'/%3E%3C/svg%3E">
-    <link th:href="@{/css/style.css}" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
     <style>
         body { background: var(--sidebar-bg); }
         .auth-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
@@ -34,51 +33,40 @@
             <div class="text-center mb-1">
                 <i class="bi bi-bookmark-star-fill" style="font-size:32px;color:var(--primary)"></i>
             </div>
-            <h3 class="text-center">登录本地书签</h3>
-            <p class="subtitle text-center">登录您的账号继续</p>
+            <h3 class="text-center">创建账号</h3>
+            <p class="subtitle text-center">注册本地书签账号</p>
 
-            <div th:if="${param.error}" class="alert alert-danger alert-sm">用户名或密码错误</div>
-            <div th:if="${param.registered}" class="alert alert-success alert-sm">注册成功，请登录</div>
-            <div th:if="${param.redirect}" class="alert alert-info alert-sm">请先登录后访问</div>
+            <div id="errorAlert" class="alert alert-danger alert-sm" style="display:none"></div>
 
-            <form th:action="@{/doLogin}" method="post">
+            <form method="post" action="/register">
                 <div class="form-group">
                     <label>用户名</label>
-                    <input type="text" name="username" class="form-input" placeholder="请输入用户名" required>
+                    <input type="text" name="userName" class="form-input" placeholder="请输入用户名" required>
+                </div>
+                <div class="form-group">
+                    <label>邮箱</label>
+                    <input type="email" name="email" class="form-input" placeholder="请输入邮箱" required>
                 </div>
                 <div class="form-group">
                     <label>密码</label>
                     <input type="password" name="password" class="form-input" placeholder="请输入密码" required>
                 </div>
-                <button type="submit" class="auth-btn">登 录</button>
+                <button type="submit" class="auth-btn">注 册</button>
             </form>
             <div class="auth-footer">
-                还没有账号？<a th:href="@{/register}">立即注册</a>
+                已有账号？<a href="/login.html">立即登录</a>
             </div>
         </div>
         <div class="auth-back">
-            <a th:href="@{/index}"><i class="bi bi-arrow-left"></i> 返回首页</a>
+            <a href="/index.html"><i class="bi bi-arrow-left"></i> 返回首页</a>
         </div>
     </div>
     <script>
-    document.querySelector('form').addEventListener('submit', function(e) {
-        e.preventDefault();
-        var form = this;
-        var username = form.querySelector('[name=username]').value;
-        var password = form.querySelector('[name=password]').value;
-        fetch('/api/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: username, password: password })
-        }).then(function(r) { return r.json(); }).then(function(d) {
-            if (d.success) {
-                localStorage.setItem('token', d.token);
-                localStorage.setItem('refreshToken', d.refreshToken);
-            }
-        }).finally(function() {
-            form.submit();
-        });
-    });
+    var params = new URLSearchParams(window.location.search);
+    if (params.get('error') === 'exists') document.getElementById('errorAlert').textContent = '用户名已存在';
+    if (params.get('error') === 'email_exists') document.getElementById('errorAlert').textContent = '邮箱已被注册';
+    if (params.get('error') === 'missing') document.getElementById('errorAlert').textContent = '请填写所有必填项';
+    if (document.getElementById('errorAlert').textContent) document.getElementById('errorAlert').style.display = 'block';
     </script>
 </body>
 </html>
