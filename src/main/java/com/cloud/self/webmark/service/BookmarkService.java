@@ -83,7 +83,8 @@ public class BookmarkService {
                 .filter(b -> b.getPublicType() == 1)
                 .filter(b -> (b.getTitle() != null && b.getTitle().toLowerCase().contains(lowerKey))
                         || (b.getDescription() != null && b.getDescription().toLowerCase().contains(lowerKey))
-                        || (b.getTags() != null && b.getTags().toLowerCase().contains(lowerKey)))
+                        || (b.getTags() != null && b.getTags().toLowerCase().contains(lowerKey))
+                        || (b.getUrl() != null && b.getUrl().toLowerCase().contains(lowerKey)))
                 .collect(Collectors.toList());
     }
 

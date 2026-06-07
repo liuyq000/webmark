@@ -1,0 +1,39 @@
+<!-- 用户新建/编辑弹窗 -->
+<div id="_userEditModal" style="display:block;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1060;">
+    <div class="bm-form-content">
+        <div class="bm-header">
+            <h5 id="_userModalTitle"></h5>
+            <button type="button" class="bm-header-close" onclick="document.getElementById('_userEditModal').remove()"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div class="bm-form-body">
+            <div class="bm-field">
+                <label>用户名</label>
+                <input id="_ueName" class="bm-input" placeholder="用户名">
+            </div>
+            <div class="bm-field">
+                <label>邮箱</label>
+                <input id="_ueEmail" class="bm-input" placeholder="邮箱">
+            </div>
+            <div class="bm-field">
+                <label>密码<span id="_uePassRequired"></span></label>
+                <input id="_uePass" class="bm-input" type="password" placeholder="">
+            </div>
+            <div class="bm-field">
+                <label>角色</label>
+                <select id="_ueRole" class="bm-input">
+                    <option value="ROLE_USER">普通用户</option>
+                    <option value="ROLE_ADMIN">管理员</option>
+                </select>
+            </div>
+            <div class="bm-field">
+                <label>简介</label>
+                <textarea id="_ueIntro" class="bm-input bm-textarea" rows="2"></textarea>
+            </div>
+            <div style="color:#dc3545;font-size:13px;min-height:20px" id="_ueError"></div>
+        </div>
+        <div class="bm-footer">
+            <button class="bm-btn bm-btn-secondary" onclick="document.getElementById('_userEditModal').remove()">取消</button>
+            <button class="bm-btn bm-btn-primary" id="_userSaveBtn" onclick="saveUserData()"><i class="bi bi-check"></i> 保存</button>
+        </div>
+    </div>
+</div>

@@ -78,6 +78,7 @@ public class WebmarkApp {
             // ===== JWT 中间件（保护需要登录的 API） =====
             config.routes.beforeMatched(ctx -> {
                 if (ctx.path().startsWith("/api/admin/") || ctx.path().startsWith("/admin/api/")
+                        || ctx.path().startsWith("/admin/tool/")
                         || ctx.path().startsWith("/api/folders") && !"GET".equals(ctx.method())
                         || ctx.path().equals("/api/home-bookmarks")) {
                     JwtAuthMiddleware.handle(ctx, jwtUtil, userService);
@@ -166,7 +167,7 @@ public class WebmarkApp {
                 Long folderId = fidStr != null && !fidStr.isEmpty() ? Long.parseLong(fidStr) : null;
                 List<Bookmark> bookmarks;
                 if (folderId != null) {
-                    bookmarks = bookmarkService.listPublicByFolderIds(folderService.getDescendantIds(folderId));
+                    bookmarks = bookmarkService.listPublicByFolderIds(List.of(folderId));
                 } else {
                     bookmarks = bookmarkService.listPublicByFolderIds(null);
                 }
@@ -204,6 +205,16 @@ public class WebmarkApp {
             // ===== 文件夹 API =====
             config.routes.get("/api/folders", ctx -> {
                 String username = ctx.attribute("username");
+                if (username == null) {
+                    // 手动检查 Authorization header（addbookmark.html 等页面不经过 JWT 中间件）
+                    String authHeader = ctx.header("Authorization");
+                    if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                        String token = authHeader.substring(7);
+                        if (jwtUtil.validateToken(token) && "access".equals(jwtUtil.getTokenType(token))) {
+                            username = jwtUtil.getUsername(token);
+                        }
+                    }
+                }
                 if (username != null) {
                     User user = userService.findByUserName(username);
                     ctx.json(folderService.listTreeByUserId(user.getId()));
@@ -312,8 +323,17 @@ public class WebmarkApp {
                 if (user != null && !user.getId().equals(existing.getUserId())) {
                     ctx.status(403).json(Map.of("success", false, "message", "无权操作该书签")); return;
                 }
-                bookmark.setId(id);
-                bookmarkService.updateById(bookmark);
+                // 合并：只更新传入的非空字段，保留原有数据
+                if (bookmark.getTitle() != null) existing.setTitle(bookmark.getTitle());
+                if (bookmark.getUrl() != null) existing.setUrl(bookmark.getUrl());
+                if (bookmark.getDescription() != null) existing.setDescription(bookmark.getDescription());
+                if (bookmark.getFolderId() != null) existing.setFolderId(bookmark.getFolderId());
+                if (bookmark.getLogoUrl() != null) existing.setLogoUrl(bookmark.getLogoUrl());
+                if (bookmark.getTags() != null) existing.setTags(bookmark.getTags());
+                if (bookmark.getPublicType() != null) existing.setPublicType(bookmark.getPublicType());
+                if (bookmark.getSortOrder() != null) existing.setSortOrder(bookmark.getSortOrder());
+                existing.setUpdateTime(LocalDateTime.now());
+                bookmarkService.updateById(existing);
                 ctx.json(Map.of("success", true));
             });
 
@@ -336,9 +356,11 @@ public class WebmarkApp {
                     Number id = (Number) item.get("id");
                     Number sortOrder = (Number) item.get("sortOrder");
                     Bookmark b = bookmarkService.getById(id.longValue());
-                    if (b != null && user != null && user.getId().equals(b.getUserId())) {
-                        b.setSortOrder(sortOrder.intValue());
-                        bookmarkService.updateById(b);
+                    if (b != null && user != null) {
+                        if (b.getUserId() == null || user.getId().equals(b.getUserId())) {
+                            b.setSortOrder(sortOrder.intValue());
+                            bookmarkService.updateById(b);
+                        }
                     }
                 }
                 ctx.json(Map.of("success", true));
@@ -351,9 +373,12 @@ public class WebmarkApp {
                     Number id = (Number) item.get("id");
                     Number sortOrder = (Number) item.get("sortOrder");
                     Folder f = folderService.getById(id.longValue());
-                    if (f != null && user != null && f.getUserId() != null && user.getId().equals(f.getUserId())) {
-                        f.setSortOrder(sortOrder.intValue());
-                        folderService.updateById(f);
+                    if (f != null && user != null) {
+                        // 允许排序：文件夹无归属（公共）或归属当前用户
+                        if (f.getUserId() == null || user.getId().equals(f.getUserId())) {
+                            f.setSortOrder(sortOrder.intValue());
+                            folderService.updateById(f);
+                        }
                     }
                 }
                 ctx.json(Map.of("success", true));
@@ -381,8 +406,8 @@ public class WebmarkApp {
                 if (user == null) { ctx.json(Map.of("success", false, "message", "未登录")); return; }
                 UploadedFile file = ctx.uploadedFile("htmlFile");
                 if (file == null) { ctx.json(Map.of("success", false, "message", "请选择文件")); return; }
-                String structure = ctx.queryParam("structure");
-                String type = ctx.queryParam("type");
+                String structure = ctx.formParam("structure");
+                String type = ctx.formParam("type");
                 try {
                     Map<String, Object> result = importExportService.importBookmarks(
                             file.content(), structure, type, user);

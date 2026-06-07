@@ -1,0 +1,29 @@
+<!-- 网页收集工具面板 -->
+<div id="_collectToolModal" style="display:block;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1050;">
+    <div class="mgmt-modal-content" style="max-width:600px;">
+        <div class="bm-header">
+            <h5><i class="bi bi-globe me-2"></i>网页收集工具</h5>
+            <button type="button" class="bm-header-close" onclick="closeCollectTool()"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div class="bm-form-body">
+            <div style="border:2px dashed var(--border-color);border-radius:12px;padding:32px;text-align:center">
+                <i class="bi bi-bookmark-plus" style="font-size:40px;color:var(--primary);display:block;margin-bottom:12px"></i>
+                <h6 style="margin-bottom:16px">一键收藏到本地书签</h6>
+                <p style="font-size:13px;color:var(--text-secondary);margin-bottom:20px">将下方按钮拖到浏览器书签栏，浏览任意网页时点击即可快速收藏</p>
+                <a class="bm-btn bm-btn-primary" style="padding:12px 28px;font-size:15px" href="javascript:void(0)">
+                    <i class="bi bi-bookmark-plus me-2"></i>收藏到本地书签
+                </a>
+                <p class="mt-3" style="font-size:12px;color:#999">拖到浏览器书签栏使用</p>
+            </div>
+            <div class="mt-3" style="background:var(--main-bg);border-radius:10px;padding:16px">
+                <h6 style="font-size:14px;margin-bottom:8px"><i class="bi bi-info-circle me-1"></i> 使用说明</h6>
+                <ol style="font-size:13px;color:var(--text-secondary);padding-left:20px;line-height:1.8">
+                    <li>将上方按钮 <strong>拖动</strong> 到浏览器的书签栏</li>
+                    <li>在任意网页浏览时，点击该书签</li>
+                    <li>会自动弹出添加页面，URL 和标题已自动填写</li>
+                    <li>补充信息后保存即可</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
