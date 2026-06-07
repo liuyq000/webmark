@@ -1,6 +1,7 @@
 package com.cloud.self.webmark;
 
 import com.cloud.self.webmark.config.DataStore;
+import com.cloud.self.webmark.config.WebmarkConfig;
 import com.cloud.self.webmark.entity.Bookmark;
 import com.cloud.self.webmark.entity.Folder;
 import com.cloud.self.webmark.entity.User;
@@ -24,9 +25,10 @@ public class WebmarkApp {
 
     public static void main(String[] args) {
         // ==================== 初始化 ====================
-        String dataDir = System.getenv().getOrDefault("WEBMARK_DATA_DIR", "./data");
-        boolean prettyPrint = !"false".equals(System.getenv().getOrDefault("WEBMARK_JSON_PRETTY", "true"));
-        int port = Integer.parseInt(System.getenv().getOrDefault("WEBMARK_PORT", "8888"));
+        WebmarkConfig appCfg = new WebmarkConfig();
+        String dataDir = appCfg.getDataDir();
+        boolean prettyPrint = appCfg.isJsonPretty();
+        int port = appCfg.getPort();
 
         var dataStore = new DataStore(dataDir, prettyPrint);
         dataStore.init();
@@ -38,8 +40,8 @@ public class WebmarkApp {
         var cssEditorService = new CssEditorService();
         var importExportService = new ImportExportService(bookmarkService, folderService, faviconService);
         var jwtUtil = new JwtUtil(
-                System.getenv().getOrDefault("WEBMARK_JWT_SECRET", "webmark-jwt-secret-key-2024-min-32bytes!!"),
-                1800000, 604800000
+                appCfg.getJwtSecret(),
+                appCfg.getJwtAccessExpiration(), appCfg.getJwtRefreshExpiration()
         );
 
         // ==================== Javalin ====================
@@ -519,7 +521,7 @@ public class WebmarkApp {
 
         }).start(port);
 
-        log.info("Webmark 启动成功，端口: {}, 数据目录: {}", port, dataDir);
+        log.info("Webmark 启动成功，环境: {}, 端口: {}, 数据目录: {}", appCfg.getEnv(), port, dataDir);
     }
 
     private static int parseInt(String value, int defaultValue) {
