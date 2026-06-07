@@ -70,6 +70,7 @@ public class WebmarkApp {
             config.routes.get("/", ctx -> ctx.redirect("/index.html"));
             config.routes.get("/index", ctx -> ctx.redirect("/index.html"));
             config.routes.get("/login", ctx -> ctx.redirect("/login.html"));
+            config.routes.post("/doLogin", ctx -> ctx.redirect("/index.html"));
             config.routes.get("/register", ctx -> ctx.redirect("/register.html"));
             config.routes.get("/addbookmark", ctx -> ctx.redirect("/addbookmark.html"));
             config.routes.get("/lookAround", ctx -> ctx.redirect("/index.html"));
@@ -152,7 +153,8 @@ public class WebmarkApp {
                 ctx.json(Map.of(
                         "success", true,
                         "token", jwtUtil.generateAccessToken(user.getUserName(), user.getRole()),
-                        "refreshToken", jwtUtil.generateRefreshToken(user.getUserName(), user.getRole())
+                        "refreshToken", jwtUtil.generateRefreshToken(user.getUserName(), user.getRole()),
+                        "role", user.getRole()
                 ));
             });
 
@@ -284,7 +286,9 @@ public class WebmarkApp {
                 String keyword = ctx.queryParam("keyword");
                 String ptStr = ctx.queryParam("publicType");
                 Integer publicType = ptStr != null && !ptStr.isEmpty() ? Integer.parseInt(ptStr) : null;
-                PageResult<Bookmark> result = bookmarkService.adminPageByFolder(page, size, keyword, folderId, publicType, folderService);
+                User user = ctx.attribute("user");
+                Long userId = user != null ? user.getId() : null;
+                PageResult<Bookmark> result = bookmarkService.adminPageByFolder(page, size, keyword, folderId, publicType, folderService, userId);
                 ctx.json(Map.of("records", result.getRecords(), "total", result.getTotal(), "pages", result.getPages(), "current", result.getCurrent()));
             });
 

@@ -23,6 +23,7 @@
                         if (d.success) {
                             localStorage.setItem('token', d.token);
                             localStorage.setItem('refreshToken', d.refreshToken);
+                            localStorage.setItem('role', d.role);
                             refreshPromise = null;
                             return true;
                         }
@@ -164,9 +165,10 @@ function toggleUserDropdown(e) {
     var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
     var themeIcon = isDark ? 'bi-sun-fill' : 'bi-moon-stars-fill';
     var themeText = isDark ? '亮色主题' : '暗色主题';
+    var userRole = localStorage.getItem('role');
     menu.innerHTML =
         '<a href="javascript:;" onclick="closeUserMenu();showBmMgmt()" class="um-item"><i class="bi bi-bookmarks"></i>书签管理</a>' +
-        '<a href="javascript:;" onclick="closeUserMenu();showUserMgmt()" class="um-item"><i class="bi bi-person-gear"></i>用户管理</a>' +
+        (userRole === 'ROLE_ADMIN' ? '<a href="javascript:;" onclick="closeUserMenu();showUserMgmt()" class="um-item"><i class="bi bi-person-gear"></i>用户管理</a>' : '') +
         '<a href="javascript:;" onclick="closeUserMenu();showCollectTool()" class="um-item"><i class="bi bi-globe"></i>网页收集工具</a>' +
         '<a href="javascript:;" onclick="closeUserMenu();toggleTheme()" class="um-item"><i class="bi ' + themeIcon + '"></i><span>' + themeText + '</span></a>' +
         '<a href="javascript:;" onclick="closeUserMenu();logoutUser()" class="um-item"><i class="bi bi-box-arrow-right"></i>退出登录</a>';
@@ -181,6 +183,7 @@ function logoutUser() {
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('username');
+    localStorage.removeItem('role');
     window.location.href = '/index.html';
 }
 

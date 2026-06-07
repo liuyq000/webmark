@@ -41,7 +41,7 @@ public class BookmarkService {
                 .collect(Collectors.toList());
     }
 
-    public static Predicate<Bookmark> buildFilter(String keyword, Long folderId, List<Long> folderIds, Integer publicType) {
+    public static Predicate<Bookmark> buildFilter(String keyword, Long folderId, List<Long> folderIds, Integer publicType, Long userId) {
         return b -> {
             boolean match = true;
             if (keyword != null && !keyword.isEmpty()) {
@@ -59,20 +59,23 @@ public class BookmarkService {
             if (match && publicType != null) {
                 match = publicType.equals(b.getPublicType());
             }
+            if (match && userId != null) {
+                match = b.getUserId() == null || userId.equals(b.getUserId());
+            }
             return match;
         };
     }
 
-    public PageResult<Bookmark> adminPage(int pageNum, int pageSize, String keyword, Long folderId, Integer publicType) {
+    public PageResult<Bookmark> adminPage(int pageNum, int pageSize, String keyword, Long folderId, Integer publicType, Long userId) {
         return dataStore.getBookmarkRepository().pageOrderBy(pageNum, pageSize,
-                buildFilter(keyword, folderId, null, publicType),
+                buildFilter(keyword, folderId, null, publicType, userId),
                 Comparator.comparing(Bookmark::getCreateTime).reversed());
     }
 
-    public PageResult<Bookmark> adminPageByFolder(int pageNum, int pageSize, String keyword, Long folderId, Integer publicType, FolderService folderService) {
+    public PageResult<Bookmark> adminPageByFolder(int pageNum, int pageSize, String keyword, Long folderId, Integer publicType, FolderService folderService, Long userId) {
         List<Long> folderIds = folderId != null ? folderService.getDescendantIds(folderId) : null;
         return dataStore.getBookmarkRepository().pageOrderBy(pageNum, pageSize,
-                buildFilter(keyword, null, folderIds, publicType),
+                buildFilter(keyword, null, folderIds, publicType, userId),
                 Comparator.comparing(Bookmark::getCreateTime).reversed());
     }
 

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>登录 - 本地书签</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <link href="/css/bootstrap-icons.css" rel="stylesheet">
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%234f6ef7' d='M2 2v13l6-3 6 3V2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1z'/%3E%3C/svg%3E">
     <link href="/css/style.css" rel="stylesheet">
     <style>
@@ -39,7 +39,7 @@
             <div id="errorAlert" class="alert alert-danger alert-sm" style="display:none">用户名或密码错误</div>
             <div id="successAlert" class="alert alert-success alert-sm" style="display:none">注册成功，请登录</div>
 
-            <form method="post" id="loginForm">
+            <form action="/doLogin" method="post">
                 <div class="form-group">
                     <label>用户名</label>
                     <input type="text" name="username" class="form-input" placeholder="请输入用户名" required>
@@ -77,14 +77,10 @@
                 localStorage.setItem('token', d.token);
                 localStorage.setItem('refreshToken', d.refreshToken);
                 localStorage.setItem('username', d.username);
-                window.location.href = '/index.html';
-            } else {
-                document.getElementById('errorAlert').style.display = 'block';
-                document.getElementById('errorAlert').textContent = d.message || '登录失败';
+                localStorage.setItem('role', d.role);
             }
-        }).catch(function() {
-            document.getElementById('errorAlert').style.display = 'block';
-            document.getElementById('errorAlert').textContent = '网络错误，请重试';
+        }).finally(function() {
+            form.submit();
         });
     });
     </script>
