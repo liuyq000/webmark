@@ -39,3 +39,4 @@ build/
 
 /docs/
 /.codebuddy/
+dependency-reduced-pom.xml
